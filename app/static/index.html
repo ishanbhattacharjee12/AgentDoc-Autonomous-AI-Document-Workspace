@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AgentDoc — Autonomous AI Document Generation Agent">
+    <title>AgentDoc — Autonomous Document Agent</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1 id="app-title">AgentDoc</h1>
+            <p class="subtitle">Autonomous AI Document Generation Agent</p>
+        </header>
+
+        <!-- Input Section -->
+        <section class="input-section" id="input-section">
+            <label for="request-input" class="input-label">Describe the document you need:</label>
+            <textarea
+                id="request-input"
+                class="textarea"
+                rows="4"
+                placeholder="e.g., Create a project plan for launching an AI-powered customer support chatbot..."
+            ></textarea>
+
+            <div class="button-row">
+                <button id="run-btn" class="btn btn-primary" onclick="runAgent()">
+                    <span class="btn-icon">▶</span> Run Agent
+                </button>
+                <button id="demo1-btn" class="btn btn-secondary" onclick="loadDemo(1)">
+                    Demo: Project Plan
+                </button>
+                <button id="demo2-btn" class="btn btn-secondary" onclick="loadDemo(2)">
+                    Demo: Ambiguous Request
+                </button>
+            </div>
+        </section>
+
+        <!-- Loading State -->
+        <section class="loading-section hidden" id="loading-section">
+            <div class="spinner"></div>
+            <p class="loading-text">Agent is working autonomously...</p>
+            <p class="loading-sub" id="loading-status">Planning → Executing → Synthesizing → Reflecting</p>
+        </section>
+
+        <!-- Results Section -->
+        <section class="results-section hidden" id="results-section">
+
+            <!-- Goal -->
+            <div class="result-card" id="goal-card">
+                <h2 class="card-title">🎯 Interpreted Goal</h2>
+                <p id="goal-text" class="card-body"></p>
+                <span class="badge" id="doctype-badge"></span>
+            </div>
+
+            <!-- Assumptions -->
+            <div class="result-card" id="assumptions-card">
+                <h2 class="card-title">💡 Assumptions</h2>
+                <ul id="assumptions-list" class="card-list"></ul>
+            </div>
+
+            <!-- Plan -->
+            <div class="result-card" id="plan-card">
+                <h2 class="card-title">📋 Generated Task Plan</h2>
+                <div id="plan-table-container"></div>
+            </div>
+
+            <!-- Execution Results -->
+            <div class="result-card" id="execution-card">
+                <h2 class="card-title">⚙️ Execution Results</h2>
+                <div id="execution-list"></div>
+            </div>
+
+            <!-- Reflection -->
+            <div class="result-card" id="reflection-card">
+                <h2 class="card-title">🔍 Reflection / Self-Check</h2>
+                <div id="reflection-content"></div>
+            </div>
+
+            <!-- Summary -->
+            <div class="result-card" id="summary-card">
+                <h2 class="card-title">✅ Final Summary</h2>
+                <p id="summary-text" class="card-body"></p>
+            </div>
+
+            <!-- Document Download -->
+            <div class="result-card download-card" id="download-card">
+                <h2 class="card-title">📄 Generated Document</h2>
+                <a id="download-link" class="btn btn-download" href="#" download>
+                    ⬇ Download DOCX
+                </a>
+            </div>
+        </section>
+
+        <!-- Error Section -->
+        <section class="error-section hidden" id="error-section">
+            <div class="error-card">
+                <h2>❌ Error</h2>
+                <p id="error-text"></p>
+            </div>
+        </section>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
