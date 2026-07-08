@@ -11,7 +11,14 @@ from typing import Optional
 
 from openai import OpenAI, APIError, APITimeoutError, RateLimitError, AuthenticationError
 
-from app.config import OPENAI_API_KEY, OPENAI_MODEL, REQUEST_TIMEOUT, USE_DEMO_MODE
+from app.config import (
+    OPENAI_API_KEY, 
+    GROQ_API_KEY,
+    LLM_PROVIDER,
+    ACTIVE_MODEL,
+    REQUEST_TIMEOUT, 
+    USE_DEMO_MODE
+)
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +29,18 @@ def get_client() -> OpenAI:
     """Get or create the OpenAI client singleton."""
     global _client
     if _client is None:
-        if not OPENAI_API_KEY:
-            raise RuntimeError("OPENAI_API_KEY is not configured.")
-        _client = OpenAI(api_key=OPENAI_API_KEY, timeout=REQUEST_TIMEOUT)
+        if LLM_PROVIDER == "groq":
+            if not GROQ_API_KEY:
+                raise RuntimeError("GROQ_API_KEY is not configured.")
+            _client = OpenAI(
+                api_key=GROQ_API_KEY, 
+                base_url="https://api.groq.com/openai/v1",
+                timeout=REQUEST_TIMEOUT
+            )
+        else:
+            if not OPENAI_API_KEY:
+                raise RuntimeError("OPENAI_API_KEY is not configured.")
+            _client = OpenAI(api_key=OPENAI_API_KEY, timeout=REQUEST_TIMEOUT)
     return _client
 
 
@@ -66,7 +82,7 @@ def call_llm(
     for attempt in range(2):
         try:
             response = client.chat.completions.create(
-                model=OPENAI_MODEL,
+                model=ACTIVE_MODEL,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},

@@ -9,7 +9,6 @@
 - **Reflection & Self-Check**: Evaluates the generated draft against the original request and plan, and performs exactly one revision pass if meaningful issues are found. This bounds the execution loop while improving output quality.
 - **Professional DOCX Generation**: Automatically generates request-specific, properly formatted `.docx` files using `python-docx`.
 - **Minimal SPA Frontend**: Visualizes the agent's autonomous workflow, showing the plan, assumptions, execution status, reflection results, and providing a download link for the document.
-- **Demo Mode**: Built-in mock LLM testing mode to demonstrate pipeline correctness when a valid OpenAI API key isn't provided.
 
 ## Architecture
 
@@ -44,7 +43,7 @@ AgentDoc_Project/
 │   │   ├── synthesizer.py     # Document draft synthesis
 │   │   └── reflector.py       # Reflection and revision logic
 │   ├── llm/
-│   │   └── client.py          # OpenAI wrapper with retry & Demo Mode
+│   │   └── client.py          # Groq wrapper with retry
 │   ├── tools/
 │   │   ├── registry.py        # Tool allowlist
 │   │   ├── analysis_tool.py   # Analytical reasoning tool
@@ -64,7 +63,7 @@ AgentDoc_Project/
 
 ## Technologies
 
-- **Backend**: Python 3, FastAPI, Pydantic, python-docx, python-dotenv, OpenAI API.
+- **Backend**: Python 3, FastAPI, Pydantic, python-docx, python-dotenv, Groq API.
 - **Frontend**: HTML5, CSS3, Vanilla JavaScript.
 
 ## Setup
@@ -87,15 +86,15 @@ AgentDoc_Project/
    ```
 
 4. **Configure Environment Variables:**
-   Copy the example config and edit it with your real OpenAI API key:
+   Copy the example config and edit it with your real Groq API key:
    ```bash
    cp .env.example .env
    ```
    Edit `.env`:
    ```
-   OPENAI_API_KEY=sk-...
-   OPENAI_MODEL=gpt-4o-mini
-   # USE_DEMO_MODE=true # Uncomment if you lack a valid API key
+   GROQ_API_KEY=gsk-...
+   GROQ_MODEL=llama-3.1-8b-instant
+   LLM_PROVIDER=groq
    ```
 
 ## Running the Application
@@ -152,12 +151,6 @@ After the initial synthesis step, the Reflector evaluates the draft against the 
 - **Path Traversal Protection**: The `/documents/{filename}` endpoint enforces strict checks to prevent unauthorized filesystem access (e.g., trying to read `../../.env`).
 - **Secret Safety**: The `.env` file and `app/outputs/` directory are excluded via `.gitignore`. API keys are never exposed to the frontend or logs.
 - **Graceful Fallbacks**: If the LLM generates malformed JSON for a plan, the client attempts to clean it, retries once with a repair prompt, and uses a deterministic fallback plan if it continues to fail.
-
-## Debugging Insight
-
-During development, the provided OpenAI API key returned a `401 Unauthorized` authentication error. To ensure the end-to-end architecture could be verified and the autonomous workflow demonstrated, an explicit `USE_DEMO_MODE` was implemented in the LLM client.
-
-When enabled (or when no valid key is present), the LLM client dynamically inspects the prompts and routes to contextual, request-specific simulated responses (e.g., distinguishing between a Chatbot Project Plan and an Onboarding Improvement Plan). This pragmatic approach allowed verification of the entire application (dynamic planning logic, executor routing, document synthesis, DOCX formatting, and API error handling) without being blocked by API key authorization.
 
 ## Engineering Tradeoff
 
