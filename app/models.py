@@ -49,6 +49,7 @@ class ReflectionResult(BaseModel):
     passed: bool = True
     issues_found: list[str] = Field(default_factory=list)
     improvements_applied: list[str] = Field(default_factory=list)
+    error: bool = False
 
 
 class ExecutionResult(BaseModel):

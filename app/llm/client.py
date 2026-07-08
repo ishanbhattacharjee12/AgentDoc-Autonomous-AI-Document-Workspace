@@ -67,7 +67,7 @@ def call_llm(
     system_prompt: str,
     user_prompt: str,
     temperature: float = 0.7,
-    max_tokens: int = 4000,
+    max_tokens: Optional[int] = 4000,
 ) -> str:
     """Call the LLM and return the text response.
 
@@ -112,7 +112,7 @@ def call_llm_json(
     system_prompt: str,
     user_prompt: str,
     temperature: float = 0.4,
-    max_tokens: int = 4000,
+    max_tokens: Optional[int] = 4000,
 ) -> dict:
     """Call the LLM and parse the response as JSON.
 

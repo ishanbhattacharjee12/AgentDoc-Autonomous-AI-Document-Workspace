@@ -143,8 +143,17 @@ function renderReflection(reflection) {
         return;
     }
 
-    const passedClass = reflection.passed ? "reflection-passed" : "reflection-failed";
-    const passedText = reflection.passed ? "✅ Quality Check Passed" : "⚠️ Issues Found — Revision Applied";
+    let passedClass, passedText;
+    if (reflection.error) {
+        passedClass = "reflection-failed";
+        passedText = "⚠️ Reflection Skipped (Provider Error)";
+    } else if (reflection.passed) {
+        passedClass = "reflection-passed";
+        passedText = "✅ Quality Check Passed";
+    } else {
+        passedClass = "reflection-failed";
+        passedText = "⚠️ Issues Found — Revision Applied";
+    }
 
     let html = `<div class="reflection-status ${passedClass}">${passedText}</div>`;
 

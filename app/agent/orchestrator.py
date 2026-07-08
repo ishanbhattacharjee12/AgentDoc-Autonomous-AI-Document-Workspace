@@ -105,7 +105,7 @@ def run_agent(request: str) -> AgentResponse:
             for r in execution_results
         ]
 
-        summary = _generate_summary(plan.goal, plan.document_type, len(plan.tasks), reflection.passed)
+        summary = _generate_summary(plan.goal, plan.document_type, len(plan.tasks), reflection.passed, reflection.error)
 
         response = AgentResponse(
             status="completed",
@@ -118,6 +118,7 @@ def run_agent(request: str) -> AgentResponse:
                 "passed": reflection.passed,
                 "issues_found": reflection.issues_found,
                 "improvements_applied": reflection.improvements_applied,
+                "error": reflection.error,
             },
             summary=summary,
             document_filename=filename,
@@ -143,9 +144,12 @@ def _generate_title(goal: str, document_type: str) -> str:
     return f"{doc_type}: {short_goal}"
 
 
-def _generate_summary(goal: str, document_type: str, num_tasks: int, reflection_passed: bool) -> str:
+def _generate_summary(goal: str, document_type: str, num_tasks: int, reflection_passed: bool, reflection_error: bool) -> str:
     """Generate a concise pipeline summary."""
-    status = "passed quality check" if reflection_passed else "revised after quality check"
+    if reflection_error:
+        status = "was generated (quality check skipped due to error)"
+    else:
+        status = "passed quality check" if reflection_passed else "was revised after quality check"
     return (
         f"Successfully generated a {document_type.replace('_', ' ')} document. "
         f"Executed {num_tasks} tasks autonomously. "

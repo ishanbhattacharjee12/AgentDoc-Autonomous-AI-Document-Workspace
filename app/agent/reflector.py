@@ -63,11 +63,12 @@ def _run_reflection(
     )
 
     try:
-        raw = call_llm_json(REFLECTION_SYSTEM_PROMPT, user_prompt, temperature=0.3)
+        raw = call_llm_json(REFLECTION_SYSTEM_PROMPT, user_prompt, temperature=0.3, max_tokens=500)
         result = ReflectionResult(
             passed=raw.get("passed", True),
             issues_found=raw.get("issues_found", []),
             improvements_applied=raw.get("improvements", raw.get("improvements_applied", [])),
+            error=False
         )
         logger.info("Reflection result: passed=%s, issues=%d", result.passed, len(result.issues_found))
         return result
@@ -75,9 +76,10 @@ def _run_reflection(
     except Exception as e:
         logger.error("Reflection failed: %s. Defaulting to passed.", e)
         return ReflectionResult(
-            passed=True,
+            passed=False,
             issues_found=[],
             improvements_applied=[f"Reflection skipped due to error: {str(e)[:80]}"],
+            error=True
         )
 
 
@@ -94,7 +96,7 @@ def _run_revision(
             REVISION_SYSTEM_PROMPT,
             user_prompt,
             temperature=0.4,
-            max_tokens=4000,
+            max_tokens=None, # type: ignore
         )
         return revised
 
