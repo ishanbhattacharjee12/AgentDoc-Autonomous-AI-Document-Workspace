@@ -6,7 +6,7 @@
 
 - **Autonomous Dynamic Planning**: The LLM determines the goal, document type, assumptions, and task decomposition (including tool routing) dynamically based on the input request.
 - **Controlled Tool Execution**: Maps LLM tasks to specific controlled internal tools (analysis, knowledge).
-- **Reflection & Self-Check**: Evaluates the generated draft against the original request and plan, and performs exactly one revision pass if meaningful issues are found. This bounds the execution loop while improving output quality.
+- **Reflection & Self-Check**: Evaluates the generated draft against the original request and plan, and performs exactly one revision pass if meaningful issues are found. Reflection results fall into three distinct states: Passed, Revised, or Provider Error (with graceful fallback). This bounds the execution loop while improving output quality.
 - **Professional DOCX Generation**: Automatically generates request-specific, properly formatted `.docx` files using `python-docx`.
 - **Minimal SPA Frontend**: Visualizes the agent's autonomous workflow, showing the plan, assumptions, execution status, reflection results, and providing a download link for the document.
 
@@ -145,6 +145,9 @@ The application includes two primary test cases that demonstrate bounded autonom
 We implemented a **Reflection/Self-Check stage** because LLM-generated documents may appear structurally complete while still missing user requirements, lacking logical flow, or containing inconsistencies.
 
 After the initial synthesis step, the Reflector evaluates the draft against the original request, the generated plan, and any explicit assumptions. If it finds missing actions, unclear priorities, or unfulfilled requests, it performs exactly **one controlled revision pass**. This improves output quality substantially while keeping latency and API usage tightly bounded (no uncontrolled loops).
+
+### Debugging Insight: Groq TPM Limits
+During real-mode testing, the reflection step encountered a `413 Payload Too Large` error on complex documents (like a CRM Vendor Evaluation). This was traced not to a pure context-length issue, but to Groq's 6,000 Tokens-Per-Minute (TPM) limit on `llama-3.1-8b-instant`. The underlying API client originally defaulted to `max_tokens=4000`, causing the total request footprint (prompt + max_tokens) to instantly exceed 6,000. Fixing this required dropping the explicit `max_tokens` limit on revisions so Groq dynamically calculates usage, preventing upfront rate-limit rejection.
 
 ## Error Recovery & Security
 

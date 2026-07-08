@@ -19,7 +19,7 @@ STATIC_DIR = BASE_DIR / "static"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 # LLM Provider
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai").lower()
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "groq").lower()
 
 # OpenAI
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
