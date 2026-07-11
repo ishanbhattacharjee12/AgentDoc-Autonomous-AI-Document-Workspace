@@ -473,3 +473,97 @@ When complete:
 9. Commit with meaningful commits.
 
 10. Push to GitHub.
+
+# Phase 2 – Portfolio Enhancement Goals
+Read Build_Spec.md completely before making any changes.
+
+This is no longer an assignment polish. The goal is to evolve AgentDoc into a flagship portfolio project that demonstrates strong software engineering, autonomous agent design, API design, and product thinking.
+
+Do NOT add features simply for the sake of adding features. Every improvement must make the platform genuinely more intelligent, more professional, or more useful.
+
+Priorities (highest to lowest):
+
+1. Improve the intelligence of the autonomous agent.
+   - Produce significantly more dynamic planning.
+   - Different document types should generate noticeably different task plans, assumptions, execution flows, and outputs.
+   - Reduce generic or repetitive planning.
+   - Make assumptions realistic, minimal, and relevant.
+   - Improve context propagation so later tasks naturally build upon earlier results.
+
+2. Improve document quality.
+   - Generate consultant-style, executive-quality documents.
+   - Improve formatting, hierarchy, readability, executive summaries, conclusions, recommendations, tables, and professional structure.
+   - Eliminate duplicated information.
+   - Ensure documents are understandable by both technical and non-technical audiences.
+
+3. Improve reflection.
+   - Continue using the real LLM-based reflection system.
+   - Reflection should only request a revision when genuinely necessary.
+   - Improve grading consistency.
+   - Expand quality scoring in meaningful ways without becoming unnecessarily complex.
+   - The first draft should be accepted whenever it already satisfies the requested quality.
+
+4. Improve explainability.
+   - Help users understand why recommendations were made.
+   - Display concise reasoning, confidence where appropriate, and execution insights.
+   - Never expose chain-of-thought or internal reasoning.
+
+5. Improve the user experience.
+   - Redesign the frontend to feel modern, premium, interactive, and polished.
+   - Improve typography, spacing, responsiveness, animations, loading states, cards, icons, and overall visual hierarchy.
+   - Focus on clarity and professionalism rather than flashy effects.
+
+6. Improve execution visibility.
+   - Replace generic loading indicators with a live execution timeline showing the current pipeline stage.
+   - Clearly visualize Planning → Execution → Synthesis → Reflection → Document Generation.
+
+7. Improve the downloaded documents.
+   - Produce professional Word documents suitable for business presentation.
+   - Use better formatting, headings, tables, callout sections, executive summaries, risk matrices, implementation roadmaps, and clean layouts where appropriate.
+   - Make the output feel like a consultant-prepared report rather than raw AI-generated text.
+
+8. Improve scalability of the architecture without unnecessary complexity.
+   - Keep the existing single-agent orchestrated architecture.
+   - Do not convert this into a multi-agent framework unless there is a clear engineering benefit.
+   - Preserve the clean separation between planner, executor, synthesizer, reflector, tool registry, API, and document generation.
+
+9. Improve polish.
+   - Continue refining the README.
+   - Keep documentation synchronized with the implementation.
+   - Remove contradictions, outdated references, and dead code.
+   - Preserve the existing architecture diagram.
+
+Important Constraints:
+
+- Preserve the existing autonomous agent architecture.
+- Preserve FastAPI.
+- Preserve the controlled tool registry.
+- Preserve reflection with at most one revision pass.
+- Preserve deterministic DOCX generation.
+- Continue using the configured LLM provider.
+- Do not introduce unnecessary frameworks such as LangChain, CrewAI, LangGraph, databases, authentication systems, or vector databases unless they provide a clear engineering advantage.
+- Do not overengineer.
+
+Project Rename:
+
+Rename the platform everywhere to:
+
+"AgentDoc – Autonomous Document Intelligence Platform"
+
+including the frontend, README, metadata, page titles, and GitHub repository name where appropriate.
+
+Implementation Requirements:
+
+- Test every significant change.
+- Verify the complete end-to-end pipeline after modifications.
+- Verify multiple document types produce genuinely different plans.
+- Verify reflection behaves correctly.
+- Verify DOCX generation still works.
+- Verify no secrets are committed.
+- Update README if implementation changes.
+- Commit meaningful checkpoints.
+- Push only after successful verification.
+
+The objective is not to build a larger project.
+
+The objective is to build a noticeably smarter, more polished, more professional autonomous document intelligence platform that would stand out on an AI Engineer resume.

@@ -40,24 +40,96 @@ async function runAgent() {
     hide("error-section");
     document.getElementById("run-btn").disabled = true;
 
-    try {
-        const response = await fetch("/agent", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ request: requestText }),
-        });
+    // Reset stepper
+    document.querySelectorAll('.step').forEach(el => {
+        el.classList.remove('active', 'completed');
+    });
+    document.querySelectorAll('.step-line').forEach(el => {
+        el.classList.remove('completed');
+    });
+    document.getElementById('step-planning').classList.add('active');
+    document.getElementById('loading-status').textContent = "Initializing...";
 
-        if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.detail || `Server error: ${response.status}`);
+    const updateStepper = (stageName) => {
+        const stageMap = {
+            "Planning": "planning",
+            "Executing": "executing",
+            "Synthesizing": "synthesizing",
+            "Reflecting": "reflecting",
+            "Generating Document": "generating"
+        };
+        
+        let targetStep = null;
+        for (const key in stageMap) {
+            if (stageName.startsWith(key)) {
+                targetStep = stageMap[key];
+                break;
+            }
         }
+        
+        if (targetStep) {
+            const steps = ["planning", "executing", "synthesizing", "reflecting", "generating"];
+            let found = false;
+            
+            for (let i = 0; i < steps.length; i++) {
+                const s = steps[i];
+                const stepEl = document.getElementById(`step-${s}`);
+                const lineEl = stepEl.nextElementSibling;
+                
+                if (s === targetStep) {
+                    stepEl.classList.add('active');
+                    stepEl.classList.remove('completed');
+                    found = true;
+                } else if (!found) {
+                    stepEl.classList.add('completed');
+                    stepEl.classList.remove('active');
+                    if (lineEl && lineEl.classList.contains('step-line')) {
+                        lineEl.classList.add('completed');
+                    }
+                } else {
+                    stepEl.classList.remove('active', 'completed');
+                    if (lineEl && lineEl.classList.contains('step-line')) {
+                        lineEl.classList.remove('completed');
+                    }
+                }
+            }
+        }
+        
+        document.getElementById('loading-status').textContent = stageName + "...";
+    };
 
-        const data = await response.json();
-        renderResults(data);
+    try {
+        const eventSource = new EventSource(`/agent/stream?request=${encodeURIComponent(requestText)}`);
+        
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === "progress") {
+                updateStepper(data.stage);
+            } else if (data.type === "result") {
+                eventSource.close();
+                renderResults(data.data);
+                hide("loading-section");
+                document.getElementById("run-btn").disabled = false;
+            } else if (data.type === "error") {
+                eventSource.close();
+                showError(data.error);
+                hide("loading-section");
+                document.getElementById("run-btn").disabled = false;
+            }
+        };
+        
+        eventSource.onerror = (err) => {
+            if (eventSource.readyState === EventSource.CLOSED) return;
+            eventSource.close();
+            console.error("SSE Error:", err);
+            showError("Connection to agent stream lost or failed to start.");
+            hide("loading-section");
+            document.getElementById("run-btn").disabled = false;
+        };
 
     } catch (err) {
         showError(err.message || "An unexpected error occurred.");
-    } finally {
         hide("loading-section");
         document.getElementById("run-btn").disabled = false;
     }
@@ -76,6 +148,26 @@ function renderResults(data) {
     badge.textContent = (data.document_type || "").replace(/_/g, " ").toUpperCase();
     badge.style.display = data.document_type ? "inline-block" : "none";
 
+    // Confidence and Complexity
+    const confidenceBadge = document.getElementById("confidence-badge");
+    const complexityBadge = document.getElementById("complexity-badge");
+    
+    if (data.confidence) {
+        confidenceBadge.textContent = "Confidence: " + data.confidence;
+        confidenceBadge.title = data.confidence_reason || "";
+        confidenceBadge.style.display = "inline-block";
+    } else {
+        confidenceBadge.style.display = "none";
+    }
+    
+    if (data.complexity) {
+        complexityBadge.textContent = "Complexity: " + data.complexity;
+        complexityBadge.title = data.complexity_reason || "";
+        complexityBadge.style.display = "inline-block";
+    } else {
+        complexityBadge.style.display = "none";
+    }
+
     // Assumptions
     const assumptionsList = document.getElementById("assumptions-list");
     assumptionsList.innerHTML = "";
@@ -84,6 +176,15 @@ function renderResults(data) {
         li.textContent = a;
         assumptionsList.appendChild(li);
     });
+
+    // Planning Summary
+    const planningSummary = document.getElementById("planning-summary-container");
+    if (data.planning_summary) {
+        planningSummary.innerHTML = "<strong>Planning Summary:</strong><br>" + escapeHtml(data.planning_summary);
+        planningSummary.style.display = "block";
+    } else {
+        planningSummary.style.display = "none";
+    }
 
     // Plan
     renderPlanTable(data.plan || []);

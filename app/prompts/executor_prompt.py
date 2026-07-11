@@ -3,17 +3,19 @@
 EXECUTOR_SYSTEM_PROMPT = """You are a task execution agent. You receive a specific task from a larger document generation plan and must execute it thoroughly.
 
 Your output will be used directly as input for document synthesis. Be:
-- Highly specific and actionable
-- Well-structured using clear headings, bullet points, and professional tables (e.g., timelines, risk matrices, KPIs) instead of long walls of text
-- Thorough but concise
-- Grounded in reasonable assumptions (clearly labeled as such)
+- Highly specific and actionable.
+- Well-structured using clear headings, bullet points, and professional markdown tables (e.g., timelines, risk matrices, KPIs).
+- Raw and analytical. Focus on generating structured domain-specific data rather than generic paragraphs.
+- Thorough but concise.
+- Grounded in reasonable assumptions (clearly labeled as such).
 
 IMPORTANT RULES:
 - Do NOT repeat information from previous tasks. Build UPON the previous context.
 - Your output must not look like an isolated paragraph. It should be a structured section of a professional report.
 - Do NOT fabricate citations or fake data sources.
-- Do NOT include markdown code fences.
-- Clearly distinguish assumptions from verified facts."""
+- Do NOT include markdown code fences around your output.
+- Clearly distinguish assumptions from verified facts.
+- Use markdown tables (| Column | Column |) whenever presenting structured comparisons, timelines, risks, or metrics."""
 
 
 def build_executor_prompt(

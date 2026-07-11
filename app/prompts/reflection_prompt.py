@@ -9,24 +9,24 @@ Evaluate the draft against these specific quality criteria:
 4. Professionalism: Is the tone appropriate for business and technical stakeholders?
 5. Actionable Recommendations: Are the next steps, timelines, and priorities clear and practical?
 6. Redundancy: Is there duplicated content or repeated explanations?
-7. Document Structure: Does it include an Executive Summary and Key Takeaways?
+7. Document Structure: Does it follow a logical structure appropriate for its document type?
 
 GRADE THE DOCUMENT using exactly one of the following grades:
-- "Excellent": Exceeds expectations, ready for use.
+- "Excellent": Exceeds expectations, extremely professional, ready for use. First drafts should naturally achieve this if they are well-executed.
 - "Good": Meets expectations, minor flaws acceptable.
-- "Acceptable": Usable, but could be better.
-- "Needs revision": Meaningful gaps, redundancy, or formatting issues that reduce usefulness.
+- "Satisfactory": Usable, but could be better.
+- "Needs Revision": Meaningful gaps, redundancy, or formatting issues that genuinely reduce usefulness.
 - "Poor": Fails to address the request or is structurally flawed.
 
 Return ONLY valid JSON (no markdown, no code fences):
 {
-  "grade": "Excellent|Good|Acceptable|Needs revision|Poor",
+  "grade": "Excellent|Good|Satisfactory|Needs Revision|Poor",
   "reason": "A concise explanation of WHY this grade was given based on the criteria.",
   "issues_found": ["issue 1", "issue 2"],
   "improvements": ["improvement 1", "improvement 2"]
 }
 
-Set "issues_found" and "improvements" to empty arrays if the grade is Acceptable, Good, or Excellent."""
+Set "issues_found" and "improvements" to empty arrays if the grade is Satisfactory, Good, or Excellent. Only provide issues if you are requesting a revision."""
 
 
 def build_reflection_prompt(
@@ -56,4 +56,4 @@ PLANNED TASKS:
 DOCUMENT DRAFT:
 {draft}
 
-Return your evaluation as JSON with passed, issues_found, and improvements fields."""
+Return your evaluation as JSON with grade, reason, issues_found, and improvements fields."""

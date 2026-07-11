@@ -24,11 +24,12 @@ register_tool("analysis", execute_analysis)
 register_tool("knowledge", execute_knowledge)
 
 
-def run_agent(request: str) -> AgentResponse:
+def run_agent(request: str, progress_cb=None) -> AgentResponse:
     """Execute the full autonomous agent pipeline.
 
     Args:
         request: The user's natural-language business request.
+        progress_cb: Optional callback for streaming progress.
 
     Returns:
         AgentResponse with all pipeline results.
@@ -44,15 +45,18 @@ def run_agent(request: str) -> AgentResponse:
 
     try:
         # --- Step 1: Dynamic Planning ---
+        if progress_cb: progress_cb("Planning")
         logger.info("Step 1: Generating dynamic plan...")
         plan: PlannerOutput = generate_plan(request)
         logger.info("Plan: %d tasks, type='%s'", len(plan.tasks), plan.document_type)
 
         # --- Step 2: Sequential Execution ---
+        if progress_cb: progress_cb(f"Executing {len(plan.tasks)} Tasks")
         logger.info("Step 2: Executing %d tasks sequentially...", len(plan.tasks))
         execution_results = execute_plan(plan, request)
 
         # --- Step 3: Synthesis ---
+        if progress_cb: progress_cb("Synthesizing")
         logger.info("Step 3: Synthesizing results into document draft...")
         draft = synthesize(
             request=request,
@@ -63,6 +67,7 @@ def run_agent(request: str) -> AgentResponse:
         )
 
         # --- Step 4: Reflection / Self-Check ---
+        if progress_cb: progress_cb("Reflecting")
         logger.info("Step 4: Running reflection/self-check...")
         plan_task_dicts = [
             {"task": t.task, "purpose": t.purpose, "tool": t.tool}
@@ -80,6 +85,7 @@ def run_agent(request: str) -> AgentResponse:
         revision_count = 1 if len(reflection.improvements_applied) > 0 else 0
 
         # --- Step 5: DOCX Generation ---
+        if progress_cb: progress_cb("Generating Document")
         logger.info("Step 5: Generating DOCX...")
         title = _generate_title(plan.goal, plan.document_type)
         filename = generate_docx(
@@ -102,6 +108,7 @@ def run_agent(request: str) -> AgentResponse:
                 "purpose": t.purpose,
                 "tool": t.tool,
                 "status": t.status,
+                "depends_on": getattr(t, "depends_on", []),
             }
             for t in plan.tasks
         ]
@@ -123,12 +130,17 @@ def run_agent(request: str) -> AgentResponse:
             status="completed",
             goal=plan.goal,
             document_type=plan.document_type,
+            confidence=getattr(plan, 'confidence', ''),
+            confidence_reason=getattr(plan, 'confidence_reason', ''),
+            complexity=getattr(plan, 'complexity', ''),
+            complexity_reason=getattr(plan, 'complexity_reason', ''),
+            planning_summary=getattr(plan, 'planning_summary', ''),
             assumptions=plan.assumptions,
             plan=plan_data,
             execution_results=exec_data,
             reflection={
                 "passed": reflection.passed,
-                "grade": getattr(reflection, 'grade', 'Acceptable'),
+                "grade": getattr(reflection, 'grade', 'Satisfactory'),
                 "reason": getattr(reflection, 'reason', ''),
                 "issues_found": reflection.issues_found,
                 "improvements_applied": reflection.improvements_applied,
@@ -143,6 +155,7 @@ def run_agent(request: str) -> AgentResponse:
         )
 
         logger.info("=== Agent Pipeline Complete: %s ===", filename)
+        if progress_cb: progress_cb("Complete")
         return response
 
     except Exception as e:

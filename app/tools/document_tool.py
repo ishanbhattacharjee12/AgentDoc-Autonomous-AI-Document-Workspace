@@ -140,6 +140,11 @@ def _add_content_sections(doc: Document, content: str) -> None:
                 i += 1
                 continue
             cells = [c.strip() for c in line.strip("|").split("|")]
+            # Filter out empty cells at the start and end due to leading/trailing |
+            if cells and cells[0] == "":
+                cells = cells[1:]
+            if cells and cells[-1] == "":
+                cells = cells[:-1]
             table_rows.append(cells)
             in_table = True
             i += 1
@@ -180,7 +185,7 @@ def _add_content_sections(doc: Document, content: str) -> None:
         if line.startswith("- ") or line.startswith("* "):
             text = line[2:].strip()
             text = _clean_markdown(text)
-            doc.add_paragraph(text, style='List Bullet')
+            _add_paragraph_with_formatting(doc, text, style='List Bullet')
             i += 1
             continue
 
@@ -188,14 +193,14 @@ def _add_content_sections(doc: Document, content: str) -> None:
         match = re.match(r'^(\d+)\.\s+(.+)', line)
         if match:
             text = _clean_markdown(match.group(2))
-            doc.add_paragraph(text, style='List Number')
+            _add_paragraph_with_formatting(doc, text, style='List Number')
             i += 1
             continue
 
         # Regular paragraph
         text = _clean_markdown(line)
         if text:
-            doc.add_paragraph(text)
+            _add_paragraph_with_formatting(doc, text)
 
         i += 1
 
@@ -204,20 +209,47 @@ def _add_content_sections(doc: Document, content: str) -> None:
         _add_table(doc, table_rows)
 
 
+def _add_paragraph_with_formatting(doc: Document, text: str, style=None):
+    """Add a paragraph while parsing inline bold markdown."""
+    p = doc.add_paragraph(style=style)
+    parts = re.split(r'(\*\*.*?\*\*)', text)
+    for part in parts:
+        if part.startswith('**') and part.endswith('**'):
+            run = p.add_run(part[2:-2])
+            run.bold = True
+        else:
+            p.add_run(part)
+    return p
+
+
 def _add_table(doc: Document, rows: list[list[str]]) -> None:
     """Add a table to the document."""
     if not rows:
         return
 
     num_cols = max(len(r) for r in rows)
+    if num_cols == 0:
+        return
+        
     table = doc.add_table(rows=len(rows), cols=num_cols)
-    table.style = 'Light Grid Accent 1'
+    table.style = 'Light Shading Accent 1'
 
     for r_idx, row_data in enumerate(rows):
         for c_idx, cell_text in enumerate(row_data):
             if c_idx < num_cols:
                 cell = table.cell(r_idx, c_idx)
-                cell.text = _clean_markdown(cell_text)
+                cell.text = "" # Clear default
+                p = cell.paragraphs[0]
+                text = _clean_markdown(cell_text)
+                
+                parts = re.split(r'(\*\*.*?\*\*)', text)
+                for part in parts:
+                    if part.startswith('**') and part.endswith('**'):
+                        run = p.add_run(part[2:-2])
+                        run.bold = True
+                    else:
+                        p.add_run(part)
+                        
                 # Bold header row
                 if r_idx == 0:
                     for paragraph in cell.paragraphs:
@@ -228,11 +260,7 @@ def _add_table(doc: Document, rows: list[list[str]]) -> None:
 
 
 def _clean_markdown(text: str) -> str:
-    """Remove common markdown formatting from text."""
-    # Remove bold markers
-    text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
-    # Remove italic markers
-    text = re.sub(r'\*(.+?)\*', r'\1', text)
+    """Remove common markdown formatting from text, preserving bold."""
     # Remove inline code
     text = re.sub(r'`(.+?)`', r'\1', text)
     # Remove markdown links, keep text

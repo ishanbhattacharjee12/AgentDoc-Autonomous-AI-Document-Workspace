@@ -46,7 +46,18 @@
         <section class="loading-section hidden" id="loading-section">
             <div class="spinner"></div>
             <p class="loading-text">Agent is working autonomously...</p>
-            <p class="loading-sub" id="loading-status">Planning → Executing → Synthesizing → Reflecting</p>
+            <div class="stepper-container" id="execution-stepper">
+                <div class="step active" id="step-planning">Planning</div>
+                <div class="step-line"></div>
+                <div class="step" id="step-executing">Executing</div>
+                <div class="step-line"></div>
+                <div class="step" id="step-synthesizing">Synthesizing</div>
+                <div class="step-line"></div>
+                <div class="step" id="step-reflecting">Reflecting</div>
+                <div class="step-line"></div>
+                <div class="step" id="step-generating">Document</div>
+            </div>
+            <p class="loading-sub" id="loading-status">Initializing...</p>
         </section>
 
         <!-- Results Section -->
@@ -82,7 +93,11 @@
                     <h2 class="card-title"><i data-lucide="target"></i> Interpreted Goal</h2>
                 </div>
                 <p id="goal-text" class="card-body"></p>
-                <span class="badge" id="doctype-badge"></span>
+                <div class="badges-row">
+                    <span class="badge" id="doctype-badge"></span>
+                    <span class="badge" id="confidence-badge" title="Planner Confidence"></span>
+                    <span class="badge" id="complexity-badge" title="Estimated Complexity"></span>
+                </div>
             </div>
 
             <!-- Assumptions -->
@@ -99,6 +114,7 @@
                 <div class="card-header">
                     <h2 class="card-title"><i data-lucide="list-todo"></i> Generated Task Plan</h2>
                 </div>
+                <div id="planning-summary-container" class="planning-summary"></div>
                 <div id="plan-table-container"></div>
             </div>
 

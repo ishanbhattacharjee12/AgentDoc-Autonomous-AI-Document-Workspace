@@ -4,11 +4,11 @@
 
 ## Features
 
-- **Autonomous Dynamic Planning**: The LLM determines the goal, document type, assumptions, and task decomposition (including tool routing) dynamically based on the input request.
+- **Autonomous Dynamic Planning**: The LLM determines the goal, document type, complexity, confidence, assumptions, and task decomposition (including tool routing) dynamically based on the input request.
 - **Controlled Tool Execution**: Maps LLM tasks to specific controlled internal tools (analysis, knowledge).
-- **Reflection & Self-Check**: Evaluates the generated draft against the original request and plan, and performs exactly one revision pass if meaningful issues are found. Reflection results fall into three distinct states: Passed, Revised, or Provider Error (with graceful fallback). This bounds the execution loop while improving output quality.
-- **Professional DOCX Generation**: Automatically generates request-specific, properly formatted `.docx` files using `python-docx`.
-- **Modern SPA Frontend**: Visualizes the agent's autonomous workflow, showing the plan, assumptions, execution status, reflection grades, execution duration, LLM call counts, and providing a download link for the document.
+- **Reflection & Quality Assessment**: Evaluates the generated draft against the original request and plan, returning professional grades (Excellent, Good, Satisfactory, Needs Revision, Poor). Performs exactly one revision pass if the grade is "Needs Revision" or "Poor", ensuring high quality without uncontrolled loops.
+- **Deterministic Table Formatting**: Automatically generates request-specific, professionally styled `.docx` files using `python-docx`, with deterministic table rendering for Risk Matrices, KPIs, and Timelines.
+- **Modern SPA Frontend with Live SSE**: A flagship, portfolio-quality vanilla JS frontend that connects to `/agent/stream` via Server-Sent Events (SSE) to visualize the agent's autonomous workflow in a live stepper, displaying execution metrics (Duration, LLM Calls, Tasks, Revisions), confidence, complexity, and the planning summary.
 
 ## Architecture
 
@@ -163,4 +163,4 @@ AgentDoc allows the LLM to dynamically determine document type, assumptions, tas
 ## Limitations and Future Improvements
 
 - **External Integrations**: The Knowledge Tool is currently mocked/simulated and relies solely on the LLM's parametric knowledge. In the future, this could be extended to connect to internal company wikis or use RAG (Retrieval-Augmented Generation).
-- **Asynchronous Execution**: Long-running requests may trigger HTTP timeouts. The endpoint should ideally be converted to an async job queue (e.g., background tasks or Celery) returning a job ID that the frontend can poll.
+- **Scale and Durability**: Currently, the application uses an in-memory asyncio threadpool for agent execution. For production scale, it should ideally be converted to a distributed job queue (e.g., Celery) backed by Redis, with persistent storage of past generations in a database.

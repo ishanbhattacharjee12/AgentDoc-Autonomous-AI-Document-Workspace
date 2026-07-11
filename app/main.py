@@ -59,6 +59,59 @@ async def health_check():
     }
 
 
+@app.get("/agent/stream")
+async def stream_process_request(request: str):
+    """Run the agent pipeline and stream progress via Server-Sent Events (SSE)."""
+    if not request.strip():
+        raise HTTPException(status_code=400, detail="Empty request")
+        
+    logger.info("Received SSE request: %s", request[:100])
+
+    if LLM_PROVIDER == "groq" and not GROQ_API_KEY:
+        raise HTTPException(status_code=503, detail="Groq API key is not configured.")
+    elif LLM_PROVIDER == "openai" and not OPENAI_API_KEY:
+        raise HTTPException(status_code=503, detail="OpenAI API key is not configured.")
+
+    import asyncio
+    import json
+    queue = asyncio.Queue()
+    loop = asyncio.get_running_loop()
+
+    def progress_callback(stage: str):
+        asyncio.run_coroutine_threadsafe(queue.put({"type": "progress", "stage": stage}), loop)
+
+    async def event_generator():
+        # Start a background task to run the agent
+        task = loop.run_in_executor(None, lambda: run_agent(request, progress_callback))
+        
+        while not task.done():
+            try:
+                # Wait for progress updates with a short timeout
+                msg = await asyncio.wait_for(queue.get(), timeout=0.1)
+                yield f"data: {json.dumps(msg)}\n\n"
+            except asyncio.TimeoutError:
+                pass
+        
+        # Drain any remaining progress messages
+        while not queue.empty():
+            msg = queue.get_nowait()
+            yield f"data: {json.dumps(msg)}\n\n"
+
+        # Get the final result
+        try:
+            result = task.result()
+            if result.status == "failed":
+                 yield f"data: {json.dumps({'type': 'error', 'error': result.error or 'Pipeline failed.'})}\n\n"
+            else:
+                 yield f"data: {json.dumps({'type': 'result', 'data': result.model_dump()})}\n\n"
+        except Exception as e:
+            logger.error("Error in stream: %s", e)
+            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
+            
+    from fastapi.responses import StreamingResponse
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
 @app.post("/agent", response_model=AgentResponse)
 async def process_request(body: AgentRequest):
     """Accept a natural-language request and run the autonomous agent pipeline."""

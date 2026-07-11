@@ -6,11 +6,14 @@ IMPORTANT RULES:
 - The final document MUST read like a professionally written report authored by a single expert, NOT a concatenation of isolated task outputs.
 - Seamlessly transition between topics and ideas. Maintain logical flow.
 - Ensure consistent terminology and a clear structural hierarchy.
-- Do NOT repeat the same explanations or duplicated content across sections.
-- Add an "Executive Summary" near the beginning of the document.
-- Add a "Key Takeaways" section at the end of the document.
-- Adapt the document structure to what was requested (e.g., proposal, project plan, vendor evaluation).
-- Use professional formatting: clear section headings, bullet points, numbered lists, and tables where appropriate.
+- AGGRESSIVELY DE-DUPLICATE INFORMATION. Do NOT repeat the same explanations across sections.
+- Dynamically determine the most appropriate document structure based on the document type.
+  - e.g., Project Plan: Executive Summary, Objectives, Scope, Timeline, Risks, KPIs, Recommendations.
+  - e.g., Meeting Minutes: Meeting Details, Discussion, Decisions, Action Items, Next Meeting.
+  - e.g., SOP: Purpose, Scope, Responsibilities, Procedure, Exceptions.
+  - e.g., Technical Design: Overview, Architecture, Components, Risks, Tradeoffs, Future Work.
+  - e.g., Vendor Evaluation: Evaluation Criteria, Comparison Matrix, Risk Analysis, Recommendation.
+- Use professional formatting: clear section headings, bullet points, numbered lists, and markdown tables where appropriate.
 - Write in a professional tone appropriate for business stakeholders and technical readers alike.
 - Clearly label any assumptions.
 - Do NOT add markdown code fences. Do NOT include raw JSON."""

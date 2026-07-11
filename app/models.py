@@ -40,6 +40,11 @@ class PlannerOutput(BaseModel):
     """Structured output from the autonomous planner."""
     goal: str
     document_type: str
+    confidence: str = Field(default="Medium")
+    confidence_reason: str = Field(default="")
+    complexity: str = Field(default="Moderate")
+    complexity_reason: str = Field(default="")
+    planning_summary: str = Field(default="")
     assumptions: list[str] = Field(default_factory=list)
     tasks: list[TaskPlan] = Field(default_factory=list)
 
@@ -47,7 +52,7 @@ class PlannerOutput(BaseModel):
 class ReflectionResult(BaseModel):
     """Result of the reflection/self-check stage."""
     passed: bool = True
-    grade: str = Field(default="Acceptable")
+    grade: str = Field(default="Satisfactory")
     reason: str = Field(default="")
     issues_found: list[str] = Field(default_factory=list)
     improvements_applied: list[str] = Field(default_factory=list)
@@ -69,6 +74,11 @@ class AgentResponse(BaseModel):
     status: str
     goal: str = ""
     document_type: str = ""
+    confidence: str = ""
+    confidence_reason: str = ""
+    complexity: str = ""
+    complexity_reason: str = ""
+    planning_summary: str = ""
     assumptions: list[str] = Field(default_factory=list)
     plan: list[dict] = Field(default_factory=list)
     execution_results: list[dict] = Field(default_factory=list)
