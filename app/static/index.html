@@ -29,6 +29,22 @@
                 placeholder="e.g., Create a project plan for launching an AI-powered customer support chatbot..."
             ></textarea>
 
+            <div class="options-row" style="margin-bottom: 16px; display: flex; gap: 20px; align-items: center;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="review-toggle">
+                    <span style="font-size: 0.95rem; font-weight: 500;">Review Plan Before Execution</span>
+                </label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label for="format-select" style="font-size: 0.95rem; font-weight: 500;">Format:</label>
+                    <select id="format-select" class="dropdown" style="padding: 6px 12px; border-radius: 4px; border: 1px solid #ccc;">
+                        <option value="docx">DOCX (Word)</option>
+                        <option value="pdf">PDF</option>
+                        <option value="html">HTML</option>
+                        <option value="md">Markdown</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="button-row">
                 <button id="run-btn" class="btn btn-primary" onclick="runAgent()">
                     <i data-lucide="play" class="btn-icon"></i> Run Agent
@@ -58,6 +74,24 @@
                 <div class="step" id="step-generating">Document</div>
             </div>
             <p class="loading-sub" id="loading-status">Initializing...</p>
+        </section>
+
+        <!-- Review Section -->
+        <section class="review-section hidden" id="review-section">
+            <div class="result-card">
+                <div class="card-header">
+                    <h2 class="card-title"><i data-lucide="edit"></i> Review & Edit Plan</h2>
+                </div>
+                <div id="review-plan-content" style="margin-bottom: 20px;"></div>
+                <div class="button-row">
+                    <button class="btn btn-primary" onclick="resumeExecution()">
+                        <i data-lucide="play" class="btn-icon"></i> Approve & Execute
+                    </button>
+                    <button class="btn btn-secondary" onclick="cancelExecution()">
+                        Cancel
+                    </button>
+                </div>
+            </div>
         </section>
 
         <!-- Results Section -->
@@ -143,6 +177,15 @@
                     <button class="btn-icon-only copy-btn" onclick="copyContent('summary-text')" title="Copy Summary"><i data-lucide="copy"></i></button>
                 </div>
                 <p id="summary-text" class="card-body"></p>
+            </div>
+
+            <!-- Preview -->
+            <div class="result-card" id="preview-card" style="display: none;">
+                <div class="card-header">
+                    <h2 class="card-title"><i data-lucide="eye"></i> Document Preview</h2>
+                </div>
+                <div id="preview-container" style="border: 1px solid #eee; border-radius: 6px; padding: 10px; background: #fafafa; min-height: 200px; max-height: 500px; overflow-y: auto;">
+                </div>
             </div>
 
             <!-- Document Download -->

@@ -567,3 +567,329 @@ Implementation Requirements:
 The objective is not to build a larger project.
 
 The objective is to build a noticeably smarter, more polished, more professional autonomous document intelligence platform that would stand out on an AI Engineer resume.
+
+======================================================
+PHASE 3 — FLAGSHIP PORTFOLIO ENHANCEMENTS
+======================================================
+
+The following improvements should all reinforce the core purpose of AgentDoc as an autonomous document intelligence platform.
+
+------------------------------------------------------
+1. Multi-format Document Export
+------------------------------------------------------
+
+Expand the existing document generation layer.
+
+Instead of generating only DOCX, support exporting the final document as:
+
+- DOCX
+- PDF
+- Markdown (.md)
+- HTML
+
+Requirements:
+
+- Reuse the synthesized/reflected document.
+- Do NOT regenerate the document multiple times.
+- Keep formatting consistent across formats.
+- Allow the frontend to select the desired export format before generation.
+- Keep DOCX as the default.
+
+------------------------------------------------------
+2. Human-in-the-loop Planning
+------------------------------------------------------
+
+One of the biggest improvements should be giving users control after planning.
+
+Workflow:
+
+User Request
+
+↓
+
+Planner generates task list
+
+↓
+
+Display editable task list
+
+↓
+
+User may:
+
+- remove tasks
+- reorder tasks
+- add custom tasks
+- regenerate only the plan
+- accept the plan
+
+↓
+
+Execution begins only after acceptance.
+
+Requirements:
+
+- Preserve fully autonomous mode as the default.
+- Add an "Edit Plan" option.
+- Do NOT expose chain-of-thought.
+- Only expose editable task titles and purposes.
+
+------------------------------------------------------
+3. Richer Tool Registry
+------------------------------------------------------
+
+Expand the internal tool ecosystem.
+
+Instead of only:
+
+- analysis
+- knowledge
+- document
+
+Introduce additional controlled tools such as:
+
+- SWOT Analysis Tool
+- Risk Analysis Tool
+- Timeline Planner
+- KPI Generator
+- Budget Estimator
+- Executive Summary Tool
+- Requirements Analysis Tool
+- Decision Matrix Tool
+- Recommendation Tool
+
+Requirements:
+
+- Maintain strict allowlisting.
+- The LLM only chooses tool names.
+- Python validates and executes.
+- Never allow arbitrary code execution.
+
+The planner should naturally choose different tools depending on the document type.
+
+------------------------------------------------------
+4. Live Execution Timeline
+------------------------------------------------------
+
+Replace the simple loading indicator with a professional execution timeline.
+
+Display stages such as:
+
+✓ Planning
+
+✓ Task 1
+
+✓ Task 2
+
+✓ Task 3
+
+✓ Synthesizing
+
+✓ Reflection
+
+✓ Revision (if needed)
+
+✓ Document Generation
+
+Requirements:
+
+- Live updates through the existing SSE endpoint.
+- Smooth animations.
+- Professional appearance.
+- Show current active stage.
+
+------------------------------------------------------
+5. Explainability Panel
+------------------------------------------------------
+
+Add a dedicated Explainability section.
+
+This must NOT expose chain-of-thought.
+
+Instead provide concise reasoning such as:
+
+"Why this plan?"
+
+Example:
+
+• Leadership presentation requested
+
+• Limited engineering resources
+
+• Budget constraints detected
+
+• Therefore diagnostic work prioritized
+
+Also display:
+
+- Planner confidence
+- Estimated complexity
+- Estimated reading time
+- Expected implementation effort
+
+These should help users understand the agent's decisions without revealing internal reasoning.
+
+------------------------------------------------------
+6. Consultant-grade Document Styling
+------------------------------------------------------
+
+Further improve generated documents.
+
+For DOCX and PDF:
+
+- professional cover page
+- automatic table of contents (where appropriate)
+- polished headings
+- consistent spacing
+- styled tables
+- callout boxes
+- highlighted recommendations
+- page numbers
+- headers/footers
+
+The final documents should resemble reports produced by a consulting firm.
+
+------------------------------------------------------
+7. Support More Document Types
+------------------------------------------------------
+
+Expand planning intelligence.
+
+The planner should naturally generate different plans for documents such as:
+
+- Project Plan
+- Business Proposal
+- Technical Design Document
+- SOP
+- Product Requirements Document
+- Architecture Proposal
+- Vendor Evaluation
+- Risk Assessment
+- Incident Report
+- Meeting Minutes
+- Migration Plan
+- Executive Brief
+- Feasibility Study
+
+The planner should produce genuinely different task decompositions rather than filling a generic template.
+
+------------------------------------------------------
+8. Improve Planning Intelligence
+------------------------------------------------------
+
+Continue refining prompts.
+
+Reduce generic assumptions.
+
+Reduce repetitive task generation.
+
+Encourage domain-specific planning.
+
+Encourage meaningful prioritization.
+
+Improve synthesis readability.
+
+Improve reflection judgment.
+
+Avoid unnecessary revisions when documents are already high quality.
+
+------------------------------------------------------
+9. Frontend Polish
+------------------------------------------------------
+
+Continue improving the frontend while keeping it lightweight.
+
+Focus on:
+
+- premium appearance
+- excellent spacing
+- smooth transitions
+- better typography
+- responsive layout
+- better icons
+- improved document cards
+- polished metrics section
+
+Avoid unnecessary animations.
+
+Prioritize readability.
+
+------------------------------------------------------
+10. Preserve Existing Architecture
+------------------------------------------------------
+
+The following components must remain intact:
+
+✓ Planner
+
+✓ Executor
+
+✓ Synthesizer
+
+✓ Reflector
+
+✓ Controlled Tool Registry
+
+✓ FastAPI backend
+
+✓ Gemini integration
+
+✓ SSE streaming
+
+✓ DOCX generation
+
+✓ Reflection grading
+
+✓ One-revision limit
+
+✓ Structured JSON outputs
+
+These are strengths of the project and should be enhanced rather than replaced.
+
+======================================================
+VERIFICATION
+======================================================
+
+After implementation:
+
+- Run multiple end-to-end tests using the real Gemini API.
+- Verify multiple document types generate meaningfully different plans.
+- Verify human-in-the-loop plan editing works correctly.
+- Verify all export formats generate successfully.
+- Verify the execution timeline updates correctly.
+- Verify explainability information is accurate.
+- Verify reflection still performs at most one revision.
+- Verify consultant-quality formatting in generated documents.
+- Verify no regressions were introduced.
+- Verify README reflects all new capabilities.
+
+======================================================
+SECURITY
+======================================================
+
+- Never expose the Gemini API key.
+- Ensure .env remains ignored.
+- Do not commit generated documents.
+- Preserve filesystem safety.
+- Preserve tool allowlisting.
+- Maintain bounded autonomy.
+
+======================================================
+COMPLETION
+======================================================
+
+When complete:
+
+1. Perform a final code review.
+2. Update the README with all new features.
+3. Commit only the required changes.
+4. Push to GitHub.
+5. Provide a concise report summarizing:
+   - features added;
+   - files modified;
+   - tests performed;
+   - verification results;
+   - any architectural improvements;
+   - Git commit and push status.
+
+The goal of this phase is to make AgentDoc a polished, flagship AI portfolio project that demonstrates strong software engineering, autonomous-agent design, explainability, controlled tool orchestration, and professional document generation, while keeping the implementation clean, maintainable, and focused.

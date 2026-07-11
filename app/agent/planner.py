@@ -29,7 +29,11 @@ def generate_plan(request: str) -> PlannerOutput:
         plan = PlannerOutput(**raw)
 
         # Validate tool names
-        allowed_tools = {"analysis", "knowledge", "document"}
+        allowed_tools = {
+            "analysis", "knowledge", "document",
+            "requirements_analysis", "stakeholder_analysis",
+            "compliance_review", "cost_benefit_analysis", "priority_matrix"
+        }
         for task in plan.tasks:
             if task.tool not in allowed_tools:
                 logger.warning("Task %d has unknown tool '%s', defaulting to 'analysis'", task.id, task.tool)

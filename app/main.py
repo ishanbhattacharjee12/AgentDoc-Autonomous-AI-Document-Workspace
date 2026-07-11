@@ -16,8 +16,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
 from app.config import OUTPUT_DIR, STATIC_DIR, GEMINI_API_KEY
-from app.models import AgentRequest, AgentResponse
-from app.agent.orchestrator import run_agent
+from app.models import AgentRequest, AgentResponse, PlanEditRequest
+from app.agent.orchestrator import run_agent, execute_plan_only
 
 # Configure logging
 logging.basicConfig(
@@ -60,7 +60,7 @@ async def health_check():
 
 
 @app.get("/agent/stream")
-async def stream_process_request(request: str):
+async def stream_process_request(request: str, require_review: bool = False, format: str = "docx"):
     """Run the agent pipeline and stream progress via Server-Sent Events (SSE)."""
     if not request.strip():
         raise HTTPException(status_code=400, detail="Empty request")
@@ -80,7 +80,7 @@ async def stream_process_request(request: str):
 
     async def event_generator():
         # Start a background task to run the agent
-        task = loop.run_in_executor(None, lambda: run_agent(request, progress_callback))
+        task = loop.run_in_executor(None, lambda: run_agent(request, progress_callback, require_review, format))
         
         while not task.done():
             try:
@@ -110,6 +110,48 @@ async def stream_process_request(request: str):
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
+@app.post("/agent/execute/stream")
+async def stream_execute_plan(body: PlanEditRequest):
+    """Execute a user-approved plan and stream progress via SSE."""
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=503, detail="Gemini API key is not configured.")
+
+    import asyncio
+    import json
+    queue = asyncio.Queue()
+    loop = asyncio.get_running_loop()
+
+    def progress_callback(stage: str):
+        asyncio.run_coroutine_threadsafe(queue.put({"type": "progress", "stage": stage}), loop)
+
+    async def event_generator():
+        task = loop.run_in_executor(None, lambda: execute_plan_only(body, progress_callback))
+        
+        while not task.done():
+            try:
+                msg = await asyncio.wait_for(queue.get(), timeout=0.1)
+                yield f"data: {json.dumps(msg)}\n\n"
+            except asyncio.TimeoutError:
+                pass
+        
+        while not queue.empty():
+            msg = queue.get_nowait()
+            yield f"data: {json.dumps(msg)}\n\n"
+
+        try:
+            result = task.result()
+            if result.status == "failed":
+                 yield f"data: {json.dumps({'type': 'error', 'error': result.error or 'Pipeline failed.'})}\n\n"
+            else:
+                 yield f"data: {json.dumps({'type': 'result', 'data': result.model_dump()})}\n\n"
+        except Exception as e:
+            logger.error("Error in execute stream: %s", e)
+            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
+            
+    from fastapi.responses import StreamingResponse
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
 @app.post("/agent", response_model=AgentResponse)
 async def process_request(body: AgentRequest):
     """Accept a natural-language request and run the autonomous agent pipeline."""
@@ -119,7 +161,7 @@ async def process_request(body: AgentRequest):
         raise HTTPException(status_code=503, detail="Gemini API key is not configured.")
 
     try:
-        result = run_agent(body.request)
+        result = run_agent(body.request, require_review=body.require_review, format=body.format)
         if result.status == "failed":
             raise HTTPException(status_code=500, detail=result.error or "Agent pipeline failed.")
         return result
@@ -154,11 +196,19 @@ async def get_document(filename: str):
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Document not found.")
 
-    if not file_path.suffix == ".docx":
-        raise HTTPException(status_code=400, detail="Only .docx files can be retrieved.")
+    allowed_extensions = {".docx", ".pdf", ".html", ".md"}
+    if file_path.suffix not in allowed_extensions:
+        raise HTTPException(status_code=400, detail="Unsupported file format.")
+
+    media_types = {
+        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ".pdf": "application/pdf",
+        ".html": "text/html",
+        ".md": "text/markdown",
+    }
 
     return FileResponse(
         path=str(file_path),
         filename=filename,
-        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        media_type=media_types.get(file_path.suffix, "application/octet-stream"),
     )

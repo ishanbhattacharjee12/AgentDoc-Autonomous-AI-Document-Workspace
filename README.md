@@ -5,10 +5,11 @@
 ## Features
 
 - **Autonomous Dynamic Planning**: The LLM determines the goal, document type, complexity, confidence, assumptions, and task decomposition (including tool routing) dynamically based on the input request.
-- **Controlled Tool Execution**: Maps LLM tasks to specific controlled internal tools (analysis, knowledge).
+- **Human-in-the-Loop (Review Mode)**: Optionally pause the autonomous workflow after planning to edit, modify, and approve tasks before execution resumes.
+- **Controlled Tool Execution**: Maps LLM tasks to specific controlled internal tools (analysis, knowledge, requirements analysis, stakeholder analysis, compliance review, cost-benefit analysis, priority matrix).
 - **Reflection & Quality Assessment**: Evaluates the generated draft against the original request and plan, returning professional grades (Excellent, Good, Satisfactory, Needs Revision, Poor). Performs exactly one revision pass if the grade is "Needs Revision" or "Poor", ensuring high quality without uncontrolled loops.
-- **Deterministic Table Formatting**: Automatically generates request-specific, professionally styled `.docx` files using `python-docx`, with deterministic table rendering for Risk Matrices, KPIs, and Timelines.
-- **Modern SPA Frontend with Live SSE**: A flagship, portfolio-quality vanilla JS frontend that connects to `/agent/stream` via Server-Sent Events (SSE) to visualize the agent's autonomous workflow in a live stepper, displaying execution metrics (Duration, LLM Calls, Tasks, Revisions), confidence, complexity, and the planning summary.
+- **Multi-Format Export**: Generates professional documents from a single finalized representation. Supports `.docx`, `.pdf`, `.html`, and `.md` with consistent consultant-grade styling.
+- **Modern SPA Frontend with Live SSE**: A flagship, portfolio-quality vanilla JS frontend that connects to `/agent/stream` via Server-Sent Events (SSE). It visualizes the agent's autonomous workflow in a live stepper and timeline, displaying execution metrics (Duration, LLM Calls, Tasks, Revisions), confidence, complexity, reading time, effort, and the planning summary.
 
 ## Architecture
 
@@ -111,7 +112,7 @@ The application will be accessible at:
 ## Usage
 
 ### Frontend Usage
-Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/) in your browser. You can enter a custom request or use the provided demo buttons to automatically populate standard test cases.
+Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/) in your browser. You can enter a custom request, optionally enable "Review Plan Before Execution", choose the output format (DOCX, PDF, HTML, MD), or use the provided demo buttons.
 
 ### API Usage
 You can run the agent pipeline via the `/agent` endpoint using `curl` or Postman.
@@ -119,12 +120,12 @@ You can run the agent pipeline via the `/agent` endpoint using `curl` or Postman
 ```bash
 curl -X POST http://127.0.0.1:8000/agent \
      -H "Content-Type: application/json" \
-     -d '{"request": "Create a project plan for launching an AI-powered customer support chatbot..."}'
+     -d '{"request": "Create a project plan...", "require_review": false, "format": "pdf"}'
 ```
 
 Retrieve the generated document using the URL provided in the response:
 ```bash
-curl -O http://127.0.0.1:8000/documents/agentdoc_project_plan_12345.docx
+curl -O http://127.0.0.1:8000/documents/agentdoc_project_plan_12345.pdf
 ```
 
 ## Required Test Cases

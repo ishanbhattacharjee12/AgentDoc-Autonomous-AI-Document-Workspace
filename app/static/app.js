@@ -33,11 +33,14 @@ async function runAgent() {
         showError("Please enter a document request.");
         return;
     }
+    const requireReview = document.getElementById("review-toggle").checked;
+    const format = document.getElementById("format-select").value;
 
     // Show loading, hide others
     show("loading-section");
     hide("results-section");
     hide("error-section");
+    hide("review-section");
     document.getElementById("run-btn").disabled = true;
 
     // Reset stepper
@@ -99,7 +102,8 @@ async function runAgent() {
     };
 
     try {
-        const eventSource = new EventSource(`/agent/stream?request=${encodeURIComponent(requestText)}`);
+        const url = `/agent/stream?request=${encodeURIComponent(requestText)}&require_review=${requireReview}&format=${format}`;
+        const eventSource = new EventSource(url);
         
         eventSource.onmessage = (event) => {
             const data = JSON.parse(event.data);
@@ -108,7 +112,11 @@ async function runAgent() {
                 updateStepper(data.stage);
             } else if (data.type === "result") {
                 eventSource.close();
-                renderResults(data.data);
+                if (data.data.status === "requires_review") {
+                    showReviewScreen(data.data, requestText, format);
+                } else {
+                    renderResults(data.data);
+                }
                 hide("loading-section");
                 document.getElementById("run-btn").disabled = false;
             } else if (data.type === "error") {
@@ -130,6 +138,139 @@ async function runAgent() {
 
     } catch (err) {
         showError(err.message || "An unexpected error occurred.");
+        hide("loading-section");
+        document.getElementById("run-btn").disabled = false;
+    }
+}
+
+let currentPlanData = null;
+let currentRequestText = "";
+let currentFormat = "";
+
+function showReviewScreen(data, requestText, format) {
+    currentPlanData = data;
+    currentRequestText = requestText;
+    currentFormat = format;
+
+    // Display summary and explainability
+    let html = `
+        <div style="margin-bottom: 20px;">
+            <strong>Goal:</strong> ${escapeHtml(data.goal)}<br>
+            <strong>Document Type:</strong> ${escapeHtml(data.document_type)}
+        </div>
+    `;
+
+    html += `<h4>Tasks (Editable)</h4><div style="display:flex; flex-direction:column; gap:10px;">`;
+    
+    data.plan.forEach((task, index) => {
+        html += `
+            <div class="task-edit-card" style="border:1px solid #ddd; padding:10px; border-radius:4px;">
+                <strong>Task ${task.id}:</strong> 
+                <input type="text" id="edit-task-${index}" value="${escapeHtml(task.task)}" style="width:100%; margin-top:5px; padding:5px;"><br>
+                <strong>Purpose:</strong> 
+                <input type="text" id="edit-purpose-${index}" value="${escapeHtml(task.purpose)}" style="width:100%; margin-top:5px; padding:5px;"><br>
+                <strong>Tool:</strong> 
+                <select id="edit-tool-${index}" style="margin-top:5px; padding:5px;">
+                    <option value="analysis" ${task.tool==='analysis'?'selected':''}>analysis</option>
+                    <option value="knowledge" ${task.tool==='knowledge'?'selected':''}>knowledge</option>
+                    <option value="requirements_analysis" ${task.tool==='requirements_analysis'?'selected':''}>requirements_analysis</option>
+                    <option value="stakeholder_analysis" ${task.tool==='stakeholder_analysis'?'selected':''}>stakeholder_analysis</option>
+                    <option value="compliance_review" ${task.tool==='compliance_review'?'selected':''}>compliance_review</option>
+                    <option value="cost_benefit_analysis" ${task.tool==='cost_benefit_analysis'?'selected':''}>cost_benefit_analysis</option>
+                    <option value="priority_matrix" ${task.tool==='priority_matrix'?'selected':''}>priority_matrix</option>
+                </select>
+                <div style="margin-top:5px; font-size:0.85em; color:#666;">
+                    Dependencies: ${task.depends_on && task.depends_on.length ? task.depends_on.join(', ') : 'None'}
+                </div>
+            </div>
+        `;
+    });
+    html += `</div>`;
+
+    document.getElementById("review-plan-content").innerHTML = html;
+    show("review-section");
+    hide("loading-section");
+    if (window.lucide) { lucide.createIcons(); }
+}
+
+function cancelExecution() {
+    hide("review-section");
+    document.getElementById("run-btn").disabled = false;
+    showError("Execution cancelled by user.");
+}
+
+async function resumeExecution() {
+    // Gather edited tasks
+    const editedTasks = currentPlanData.plan.map((t, index) => {
+        return {
+            ...t,
+            task: document.getElementById(`edit-task-${index}`).value,
+            purpose: document.getElementById(`edit-purpose-${index}`).value,
+            tool: document.getElementById(`edit-tool-${index}`).value
+        };
+    });
+    
+    currentPlanData.tasks = editedTasks; // For python model
+
+    const payload = {
+        request: currentRequestText,
+        format: currentFormat,
+        planner_output: currentPlanData
+    };
+
+    hide("review-section");
+    show("loading-section");
+    document.getElementById("loading-status").textContent = "Resuming Execution...";
+
+    try {
+        const response = await fetch('/agent/execute/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            
+            let lines = buffer.split("\n\n");
+            buffer = lines.pop(); // Keep incomplete chunk
+            
+            for (let line of lines) {
+                if (line.startsWith("data: ")) {
+                    const dataStr = line.slice(6);
+                    if (!dataStr.trim()) continue;
+                    try {
+                        const data = JSON.parse(dataStr);
+                        if (data.type === "progress") {
+                            // Re-use updateStepper logic
+                            document.getElementById('loading-status').textContent = data.stage + "...";
+                        } else if (data.type === "result") {
+                            renderResults(data.data);
+                            hide("loading-section");
+                            document.getElementById("run-btn").disabled = false;
+                        } else if (data.type === "error") {
+                            showError(data.error);
+                            hide("loading-section");
+                            document.getElementById("run-btn").disabled = false;
+                        }
+                    } catch (e) {
+                        console.error("Error parsing JSON:", e, dataStr);
+                    }
+                }
+            }
+        }
+    } catch (err) {
+        showError(err.message || "Execution failed.");
         hide("loading-section");
         document.getElementById("run-btn").disabled = false;
     }
@@ -168,6 +309,23 @@ function renderResults(data) {
         complexityBadge.style.display = "none";
     }
 
+    // Add reading time & effort to badges if we want, or summary
+    const goalCard = document.getElementById("goal-card");
+    let extraBadges = goalCard.querySelector(".extra-badges");
+    if(!extraBadges) {
+        extraBadges = document.createElement("div");
+        extraBadges.className = "extra-badges";
+        extraBadges.style.marginTop = "10px";
+        goalCard.appendChild(extraBadges);
+    }
+    extraBadges.innerHTML = "";
+    if (data.reading_time) {
+        extraBadges.innerHTML += `<span class="badge" style="background:#e3f2fd; color:#1565c0;"><i data-lucide="book-open" style="width:14px; margin-right:4px;"></i> Reading Time: ${escapeHtml(data.reading_time)}</span> `;
+    }
+    if (data.implementation_effort) {
+        extraBadges.innerHTML += `<span class="badge" style="background:#f3e5f5; color:#7b1fa2;"><i data-lucide="zap" style="width:14px; margin-right:4px;"></i> Effort: ${escapeHtml(data.implementation_effort)}</span>`;
+    }
+
     // Assumptions
     const assumptionsList = document.getElementById("assumptions-list");
     assumptionsList.innerHTML = "";
@@ -200,12 +358,30 @@ function renderResults(data) {
 
     // Download
     const link = document.getElementById("download-link");
+    const previewContainer = document.getElementById("preview-container");
+    const previewCard = document.getElementById("preview-card");
+
     if (data.document_url) {
         link.href = data.document_url;
-        link.innerHTML = `<i data-lucide="download" style="margin-right: 8px;"></i> Download: ` + escapeHtml(data.document_filename || "document.docx");
+        link.innerHTML = `<i data-lucide="download" style="margin-right: 8px;"></i> Download ` + escapeHtml(data.document_filename || "Document");
         show("download-card");
+        
+        // Simple preview (iframe)
+        if (data.document_url.endsWith('.html') || data.document_url.endsWith('.pdf')) {
+            previewContainer.innerHTML = `<iframe src="${data.document_url}" width="100%" height="400px" style="border:none;"></iframe>`;
+            previewCard.style.display = "block";
+        } else if (data.document_url.endsWith('.md')) {
+            // Fetch and show markdown
+            fetch(data.document_url).then(r=>r.text()).then(t => {
+                previewContainer.innerHTML = `<pre style="white-space: pre-wrap; font-family: monospace;">${escapeHtml(t)}</pre>`;
+                previewCard.style.display = "block";
+            });
+        } else {
+            previewCard.style.display = "none";
+        }
     } else {
         hide("download-card");
+        previewCard.style.display = "none";
     }
 
     show("results-section");

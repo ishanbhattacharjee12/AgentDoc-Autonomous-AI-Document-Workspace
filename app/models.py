@@ -14,6 +14,8 @@ from pydantic import BaseModel, Field, field_validator
 class AgentRequest(BaseModel):
     """Incoming user request."""
     request: str = Field(..., min_length=1, max_length=2000)
+    require_review: bool = Field(default=False)
+    format: str = Field(default="docx")
 
     @field_validator("request")
     @classmethod
@@ -44,9 +46,18 @@ class PlannerOutput(BaseModel):
     confidence_reason: str = Field(default="")
     complexity: str = Field(default="Moderate")
     complexity_reason: str = Field(default="")
+    reading_time: str = Field(default="")
+    implementation_effort: str = Field(default="")
     planning_summary: str = Field(default="")
     assumptions: list[str] = Field(default_factory=list)
     tasks: list[TaskPlan] = Field(default_factory=list)
+
+
+class PlanEditRequest(BaseModel):
+    """Approved or edited plan to resume execution."""
+    request: str = Field(..., min_length=1)
+    format: str = Field(default="docx")
+    planner_output: PlannerOutput
 
 
 class ReflectionResult(BaseModel):
@@ -78,6 +89,8 @@ class AgentResponse(BaseModel):
     confidence_reason: str = ""
     complexity: str = ""
     complexity_reason: str = ""
+    reading_time: str = ""
+    implementation_effort: str = ""
     planning_summary: str = ""
     assumptions: list[str] = Field(default_factory=list)
     plan: list[dict] = Field(default_factory=list)
