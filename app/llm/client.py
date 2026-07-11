@@ -1,6 +1,6 @@
 """AgentDoc LLM client.
 
-Wraps the OpenAI API with retry logic and structured output parsing.
+Wraps the Gemini API with retry logic and structured output parsing.
 Supports demo mode for testing when API key is unavailable.
 """
 
@@ -9,20 +9,19 @@ import logging
 import re
 from typing import Optional
 
-from openai import OpenAI, APIError, APITimeoutError, RateLimitError, AuthenticationError
+from google import genai
+from google.genai import types
+from google.genai.errors import APIError
 
 from app.config import (
-    OPENAI_API_KEY, 
-    GROQ_API_KEY,
-    LLM_PROVIDER,
+    GEMINI_API_KEY,
     ACTIVE_MODEL,
-    REQUEST_TIMEOUT, 
     USE_DEMO_MODE
 )
 
 logger = logging.getLogger(__name__)
 
-_client: Optional[OpenAI] = None
+_client: Optional[genai.Client] = None
 _global_llm_calls: int = 0
 
 
@@ -35,22 +34,13 @@ def reset_llm_call_count() -> None:
     _global_llm_calls = 0
 
 
-def get_client() -> OpenAI:
-    """Get or create the OpenAI client singleton."""
+def get_client() -> genai.Client:
+    """Get or create the Gemini client singleton."""
     global _client
     if _client is None:
-        if LLM_PROVIDER == "groq":
-            if not GROQ_API_KEY:
-                raise RuntimeError("GROQ_API_KEY is not configured.")
-            _client = OpenAI(
-                api_key=GROQ_API_KEY, 
-                base_url="https://api.groq.com/openai/v1",
-                timeout=REQUEST_TIMEOUT
-            )
-        else:
-            if not OPENAI_API_KEY:
-                raise RuntimeError("OPENAI_API_KEY is not configured.")
-            _client = OpenAI(api_key=OPENAI_API_KEY, timeout=REQUEST_TIMEOUT)
+        if not GEMINI_API_KEY:
+            raise RuntimeError("GEMINI_API_KEY is not configured.")
+        _client = genai.Client(api_key=GEMINI_API_KEY)
     return _client
 
 
@@ -81,7 +71,7 @@ def call_llm(
 ) -> str:
     """Call the LLM and return the text response.
 
-    Uses demo mode if configured, otherwise calls OpenAI API.
+    Uses demo mode if configured, otherwise calls Gemini API.
     Retries once on transient errors.
     """
     global _global_llm_calls
@@ -94,28 +84,26 @@ def call_llm(
 
     for attempt in range(2):
         try:
-            response = client.chat.completions.create(
+            response = client.models.generate_content(
                 model=ACTIVE_MODEL,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=temperature,
-                max_tokens=max_tokens,
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    temperature=temperature,
+                    max_output_tokens=max_tokens,
+                )
             )
-            content = response.choices[0].message.content
-            if content is None:
+            content = response.text
+            if not content:
                 raise RuntimeError("LLM returned empty response.")
             return content.strip()
 
-        except (APITimeoutError, RateLimitError) as e:
-            if attempt == 0:
+        except APIError as e:
+            if e.code in (429, 500, 503, 504) and attempt == 0:
                 logger.warning("Transient LLM error (attempt %d): %s", attempt + 1, e)
                 continue
-            raise RuntimeError(f"LLM request failed after retry: {_sanitize_error(e)}") from e
-        except AuthenticationError as e:
-            raise RuntimeError("OpenAI authentication failed. Check your API key.") from e
-        except APIError as e:
+            elif e.code in (401, 403):
+                raise RuntimeError("Gemini authentication failed. Check your API key.") from e
             raise RuntimeError(f"LLM API error: {_sanitize_error(e)}") from e
 
     raise RuntimeError("LLM call failed unexpectedly.")

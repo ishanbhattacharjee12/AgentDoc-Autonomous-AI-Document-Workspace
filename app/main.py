@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
-from app.config import OUTPUT_DIR, STATIC_DIR, OPENAI_API_KEY, GROQ_API_KEY, LLM_PROVIDER
+from app.config import OUTPUT_DIR, STATIC_DIR, GEMINI_API_KEY
 from app.models import AgentRequest, AgentResponse
 from app.agent.orchestrator import run_agent
 
@@ -55,7 +55,7 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "AgentDoc",
-        "api_key_configured": bool(GROQ_API_KEY) if LLM_PROVIDER == "groq" else bool(OPENAI_API_KEY),
+        "api_key_configured": bool(GEMINI_API_KEY),
     }
 
 
@@ -67,10 +67,8 @@ async def stream_process_request(request: str):
         
     logger.info("Received SSE request: %s", request[:100])
 
-    if LLM_PROVIDER == "groq" and not GROQ_API_KEY:
-        raise HTTPException(status_code=503, detail="Groq API key is not configured.")
-    elif LLM_PROVIDER == "openai" and not OPENAI_API_KEY:
-        raise HTTPException(status_code=503, detail="OpenAI API key is not configured.")
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=503, detail="Gemini API key is not configured.")
 
     import asyncio
     import json
@@ -117,10 +115,8 @@ async def process_request(body: AgentRequest):
     """Accept a natural-language request and run the autonomous agent pipeline."""
     logger.info("Received agent request: %s", body.request[:100])
 
-    if LLM_PROVIDER == "groq" and not GROQ_API_KEY:
-        raise HTTPException(status_code=503, detail="Groq API key is not configured.")
-    elif LLM_PROVIDER == "openai" and not OPENAI_API_KEY:
-        raise HTTPException(status_code=503, detail="OpenAI API key is not configured.")
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=503, detail="Gemini API key is not configured.")
 
     try:
         result = run_agent(body.request)

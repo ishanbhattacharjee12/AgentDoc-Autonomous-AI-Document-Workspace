@@ -14,8 +14,7 @@ def run_test(prompt):
     print("Document:", response.document_filename)
 
 if __name__ == "__main__":
-    import os
-    os.environ["LLM_PROVIDER"] = "groq"
+
     
     run_test("Create a project plan for launching an AI-powered customer support chatbot for a mid-sized e-commerce company.")
     run_test("Create a Standard Operating Procedure (SOP) for new employee onboarding in a remote-first tech startup.")

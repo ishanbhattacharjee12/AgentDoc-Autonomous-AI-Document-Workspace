@@ -43,7 +43,7 @@ AgentDoc_Project/
 │   │   ├── synthesizer.py     # Document draft synthesis
 │   │   └── reflector.py       # Reflection and revision logic
 │   ├── llm/
-│   │   └── client.py          # Groq wrapper with retry
+│   │   └── client.py          # Gemini wrapper with retry
 │   ├── tools/
 │   │   ├── registry.py        # Tool allowlist
 │   │   ├── analysis_tool.py   # Analytical reasoning tool
@@ -63,7 +63,7 @@ AgentDoc_Project/
 
 ## Technologies
 
-- **Backend**: Python 3, FastAPI, Pydantic, python-docx, python-dotenv, Groq API.
+- **Backend**: Python 3, FastAPI, Pydantic, python-docx, python-dotenv, Gemini API (google-genai).
 - **Frontend**: HTML5, CSS3, Vanilla JavaScript.
 
 ## Setup
@@ -86,15 +86,14 @@ AgentDoc_Project/
    ```
 
 4. **Configure Environment Variables:**
-   Copy the example config and edit it with your real Groq API key:
+   Copy the example config and edit it with your real Gemini API key:
    ```bash
    cp .env.example .env
    ```
    Edit `.env`:
    ```
-   GROQ_API_KEY=gsk-...
-   GROQ_MODEL=llama-3.1-8b-instant
-   LLM_PROVIDER=groq
+   GEMINI_API_KEY=your_gemini_api_key_here
+   GEMINI_MODEL=gemini-2.5-flash
    ```
 
 ## Running the Application
@@ -146,8 +145,8 @@ We implemented a **Reflection/Self-Check stage** because LLM-generated documents
 
 After the initial synthesis step, the Reflector evaluates the draft against the original request, the generated plan, and any explicit assumptions. If it finds missing actions, unclear priorities, or unfulfilled requests, it performs exactly **one controlled revision pass**. This improves output quality substantially while keeping latency and API usage tightly bounded (no uncontrolled loops).
 
-### Debugging Insight: Groq TPM Limits
-During real-mode testing, the reflection step encountered a `413 Payload Too Large` error on complex documents (like a CRM Vendor Evaluation). This was traced not to a pure context-length issue, but to Groq's 6,000 Tokens-Per-Minute (TPM) limit on `llama-3.1-8b-instant`. The underlying API client originally defaulted to `max_tokens=4000`, causing the total request footprint (prompt + max_tokens) to instantly exceed 6,000. Fixing this required dropping the explicit `max_tokens` limit on revisions so Groq dynamically calculates usage, preventing upfront rate-limit rejection.
+### Debugging Insight: Gemini Rate Limits
+During testing, complex multi-step generations can trigger HTTP 429 Too Many Requests errors if tasks run too quickly in parallel. The underlying LLM client catches these transient rate limit errors and applies a structured backoff-and-retry mechanism specifically for the Gemini API (`google.genai.errors.APIError` handling), ensuring the full document can successfully generate without failing the entire pipeline.
 
 ## Error Recovery & Security
 
