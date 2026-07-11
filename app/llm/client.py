@@ -23,6 +23,16 @@ from app.config import (
 logger = logging.getLogger(__name__)
 
 _client: Optional[OpenAI] = None
+_global_llm_calls: int = 0
+
+
+def get_llm_call_count() -> int:
+    return _global_llm_calls
+
+
+def reset_llm_call_count() -> None:
+    global _global_llm_calls
+    _global_llm_calls = 0
 
 
 def get_client() -> OpenAI:
@@ -74,6 +84,9 @@ def call_llm(
     Uses demo mode if configured, otherwise calls OpenAI API.
     Retries once on transient errors.
     """
+    global _global_llm_calls
+    _global_llm_calls += 1
+
     if USE_DEMO_MODE:
         return _demo_response(system_prompt, user_prompt)
 
@@ -691,7 +704,8 @@ def _demo_reflection_response(user_prompt: str) -> str:
 
     if "90-day" in prompt_lower or "phased" in prompt_lower:
         return json.dumps({
-            "passed": False,
+            "grade": "Needs revision",
+            "reason": "Phase transitions lack specific go/no-go criteria and budget allocation.",
             "issues_found": [
                 "Phase transitions could benefit from clearer go/no-go criteria",
                 "Budget allocation across phases should be more explicit"
@@ -703,7 +717,8 @@ def _demo_reflection_response(user_prompt: str) -> str:
         })
 
     return json.dumps({
-        "passed": True,
+        "grade": "Good",
+        "reason": "The document is well-structured and addresses the core requirements.",
         "issues_found": [],
         "improvements": []
     })

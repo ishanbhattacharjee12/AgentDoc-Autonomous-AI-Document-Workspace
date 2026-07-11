@@ -47,6 +47,8 @@ class PlannerOutput(BaseModel):
 class ReflectionResult(BaseModel):
     """Result of the reflection/self-check stage."""
     passed: bool = True
+    grade: str = Field(default="Acceptable")
+    reason: str = Field(default="")
     issues_found: list[str] = Field(default_factory=list)
     improvements_applied: list[str] = Field(default_factory=list)
     error: bool = False
@@ -75,3 +77,6 @@ class AgentResponse(BaseModel):
     document_filename: str = ""
     document_url: str = ""
     error: str = ""
+    total_execution_time: float = 0.0
+    llm_call_count: int = 0
+    revision_count: int = 0

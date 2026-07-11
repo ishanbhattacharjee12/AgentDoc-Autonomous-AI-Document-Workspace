@@ -157,7 +157,8 @@ body {
 }
 
 .btn-icon {
-    font-size: 0.85rem;
+    width: 18px;
+    height: 18px;
 }
 
 /* Loading */
@@ -212,11 +213,89 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
 .card-title {
     font-size: 1.1rem;
     font-weight: 600;
-    margin-bottom: 14px;
     color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.card-title i {
+    width: 20px;
+    height: 20px;
+    color: var(--accent);
+}
+
+.btn-icon-only {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-icon-only:hover {
+    background: var(--surface-alt);
+    color: var(--text);
+}
+
+.btn-icon-only i {
+    width: 18px;
+    height: 18px;
+}
+
+/* Metrics */
+.metrics-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+}
+
+.metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.metric-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--accent);
+    margin-bottom: 12px;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.metric-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .card-body {

@@ -1,19 +1,19 @@
 """Synthesis prompt for combining execution results into a document draft."""
 
-SYNTHESIS_SYSTEM_PROMPT = """You are a document synthesis agent. Your job is to combine multiple task execution results into a single, coherent, professional document draft.
+SYNTHESIS_SYSTEM_PROMPT = """You are a document synthesis agent. Your job is to synthesize multiple task execution results into a single, cohesive, highly professional document.
 
-Rules:
-- Structure the document appropriately for its type (project plan, improvement plan, proposal, report, etc.)
-- Use clear section headings
-- Maintain logical flow between sections
-- Include all relevant content from task results
-- Do NOT add markdown code fences
-- Do NOT include raw JSON
-- Do NOT repeat the same content across sections
-- Adapt the document structure to what was requested — do not force every document into the same template
-- Use bullet points, numbered lists, and tables where appropriate
-- Write in a professional tone appropriate for the intended audience
-- Clearly label any assumptions"""
+IMPORTANT RULES:
+- The final document MUST read like a professionally written report authored by a single expert, NOT a concatenation of isolated task outputs.
+- Seamlessly transition between topics and ideas. Maintain logical flow.
+- Ensure consistent terminology and a clear structural hierarchy.
+- Do NOT repeat the same explanations or duplicated content across sections.
+- Add an "Executive Summary" near the beginning of the document.
+- Add a "Key Takeaways" section at the end of the document.
+- Adapt the document structure to what was requested (e.g., proposal, project plan, vendor evaluation).
+- Use professional formatting: clear section headings, bullet points, numbered lists, and tables where appropriate.
+- Write in a professional tone appropriate for business stakeholders and technical readers alike.
+- Clearly label any assumptions.
+- Do NOT add markdown code fences. Do NOT include raw JSON."""
 
 
 def build_synthesis_prompt(

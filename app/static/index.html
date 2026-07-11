@@ -3,18 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="AgentDoc — Autonomous AI Document Generation Agent">
-    <title>AgentDoc — Autonomous Document Agent</title>
+    <meta name="description" content="AgentDoc – Autonomous Document Intelligence Platform">
+    <title>AgentDoc – Autonomous Document Intelligence Platform</title>
     <link rel="stylesheet" href="/static/styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div class="container">
         <!-- Header -->
         <header class="header">
             <h1 id="app-title">AgentDoc</h1>
-            <p class="subtitle">Autonomous AI Document Generation Agent</p>
+            <p class="subtitle">Autonomous Document Intelligence Platform</p>
         </header>
 
         <!-- Input Section -->
@@ -29,7 +31,7 @@
 
             <div class="button-row">
                 <button id="run-btn" class="btn btn-primary" onclick="runAgent()">
-                    <span class="btn-icon">▶</span> Run Agent
+                    <i data-lucide="play" class="btn-icon"></i> Run Agent
                 </button>
                 <button id="demo1-btn" class="btn btn-secondary" onclick="loadDemo(1)">
                     Demo: Project Plan
@@ -49,49 +51,89 @@
 
         <!-- Results Section -->
         <section class="results-section hidden" id="results-section">
+            
+            <!-- Metrics Summary -->
+            <div class="metrics-container" id="metrics-container">
+                <div class="metric-card">
+                    <i data-lucide="clock" class="metric-icon"></i>
+                    <div class="metric-value" id="metric-time">-- s</div>
+                    <div class="metric-label">Execution Time</div>
+                </div>
+                <div class="metric-card">
+                    <i data-lucide="cpu" class="metric-icon"></i>
+                    <div class="metric-value" id="metric-llm">--</div>
+                    <div class="metric-label">LLM Calls</div>
+                </div>
+                <div class="metric-card">
+                    <i data-lucide="check-square" class="metric-icon"></i>
+                    <div class="metric-value" id="metric-tasks">--</div>
+                    <div class="metric-label">Tasks Executed</div>
+                </div>
+                <div class="metric-card">
+                    <i data-lucide="refresh-cw" class="metric-icon"></i>
+                    <div class="metric-value" id="metric-revisions">--</div>
+                    <div class="metric-label">Revisions</div>
+                </div>
+            </div>
 
             <!-- Goal -->
             <div class="result-card" id="goal-card">
-                <h2 class="card-title">🎯 Interpreted Goal</h2>
+                <div class="card-header">
+                    <h2 class="card-title"><i data-lucide="target"></i> Interpreted Goal</h2>
+                </div>
                 <p id="goal-text" class="card-body"></p>
                 <span class="badge" id="doctype-badge"></span>
             </div>
 
             <!-- Assumptions -->
             <div class="result-card" id="assumptions-card">
-                <h2 class="card-title">💡 Assumptions</h2>
+                <div class="card-header">
+                    <h2 class="card-title"><i data-lucide="lightbulb"></i> Assumptions</h2>
+                    <button class="btn-icon-only copy-btn" onclick="copyContent('assumptions-list')" title="Copy Assumptions"><i data-lucide="copy"></i></button>
+                </div>
                 <ul id="assumptions-list" class="card-list"></ul>
             </div>
 
             <!-- Plan -->
             <div class="result-card" id="plan-card">
-                <h2 class="card-title">📋 Generated Task Plan</h2>
+                <div class="card-header">
+                    <h2 class="card-title"><i data-lucide="list-todo"></i> Generated Task Plan</h2>
+                </div>
                 <div id="plan-table-container"></div>
             </div>
 
             <!-- Execution Results -->
             <div class="result-card" id="execution-card">
-                <h2 class="card-title">⚙️ Execution Results</h2>
+                <div class="card-header">
+                    <h2 class="card-title"><i data-lucide="activity"></i> Execution Results</h2>
+                    <button class="btn-icon-only copy-btn" onclick="copyContent('execution-list')" title="Copy Execution Results"><i data-lucide="copy"></i></button>
+                </div>
                 <div id="execution-list"></div>
             </div>
 
             <!-- Reflection -->
             <div class="result-card" id="reflection-card">
-                <h2 class="card-title">🔍 Reflection / Self-Check</h2>
-                <div id="reflection-content"></div>
+                <div class="card-header">
+                    <h2 class="card-title"><i data-lucide="search"></i> Quality Assessment</h2>
+                </div>
+                <div id="reflection-grade-badge" class="badge"></div>
+                <div id="reflection-content" style="margin-top: 12px;"></div>
             </div>
 
             <!-- Summary -->
             <div class="result-card" id="summary-card">
-                <h2 class="card-title">✅ Final Summary</h2>
+                <div class="card-header">
+                    <h2 class="card-title"><i data-lucide="check-circle"></i> Final Summary</h2>
+                    <button class="btn-icon-only copy-btn" onclick="copyContent('summary-text')" title="Copy Summary"><i data-lucide="copy"></i></button>
+                </div>
                 <p id="summary-text" class="card-body"></p>
             </div>
 
             <!-- Document Download -->
             <div class="result-card download-card" id="download-card">
-                <h2 class="card-title">📄 Generated Document</h2>
+                <h2 class="card-title">Generated Document</h2>
                 <a id="download-link" class="btn btn-download" href="#" download>
-                    ⬇ Download DOCX
+                    <i data-lucide="download" style="margin-right: 8px;"></i> Download DOCX
                 </a>
             </div>
         </section>
@@ -99,7 +141,7 @@
         <!-- Error Section -->
         <section class="error-section hidden" id="error-section">
             <div class="error-card">
-                <h2>❌ Error</h2>
+                <h2><i data-lucide="alert-circle"></i> Error</h2>
                 <p id="error-text"></p>
             </div>
         </section>

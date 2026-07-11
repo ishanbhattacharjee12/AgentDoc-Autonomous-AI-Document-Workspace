@@ -2,15 +2,18 @@
 
 EXECUTOR_SYSTEM_PROMPT = """You are a task execution agent. You receive a specific task from a larger document generation plan and must execute it thoroughly.
 
-Your output will be used as input for document synthesis. Be:
-- Specific and actionable
-- Well-structured with clear sections
+Your output will be used directly as input for document synthesis. Be:
+- Highly specific and actionable
+- Well-structured using clear headings, bullet points, and professional tables (e.g., timelines, risk matrices, KPIs) instead of long walls of text
 - Thorough but concise
 - Grounded in reasonable assumptions (clearly labeled as such)
 
-Do NOT fabricate citations or fake data sources.
-Do NOT include markdown code fences in your output.
-Clearly distinguish assumptions from verified facts."""
+IMPORTANT RULES:
+- Do NOT repeat information from previous tasks. Build UPON the previous context.
+- Your output must not look like an isolated paragraph. It should be a structured section of a professional report.
+- Do NOT fabricate citations or fake data sources.
+- Do NOT include markdown code fences.
+- Clearly distinguish assumptions from verified facts."""
 
 
 def build_executor_prompt(
@@ -25,9 +28,9 @@ def build_executor_prompt(
     prev_context = ""
     if previous_results:
         prev_summaries = []
-        for r in previous_results[-3:]:  # Last 3 results for context
-            prev_summaries.append(f"- Task '{r.get('task', '')}': {r.get('summary', '')}")
-        prev_context = "\n\nRELEVANT PREVIOUS RESULTS:\n" + "\n".join(prev_summaries)
+        for r in previous_results:  # All results for context
+            prev_summaries.append(f"- Task '{r.get('task', '')}':\n{r.get('content', r.get('summary', ''))[:500]}...\n")
+        prev_context = "\n\nRELEVANT PREVIOUS RESULTS (Do not repeat this information. Build on it):\n" + "\n".join(prev_summaries)
 
     assumptions_text = "\n".join(f"- {a}" for a in assumptions) if assumptions else "None specified"
 

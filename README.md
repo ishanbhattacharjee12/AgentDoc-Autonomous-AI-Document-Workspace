@@ -1,6 +1,6 @@
-# AgentDoc
+# AgentDoc – Autonomous Document Intelligence Platform
 
-**AgentDoc** is a complete autonomous AI document-generation agent for a Python AI Engineer assignment. It accepts a natural-language business request, understands the goal, creates its own dynamic task plan, executes the plan using controlled tools, synthesizes the results, performs a reflection/self-check, revises once if necessary, and generates a polished Microsoft Word `.docx` document.
+**AgentDoc – Autonomous Document Intelligence Platform** is a complete autonomous AI document-generation agent for a Python AI Engineer assignment. It accepts a natural-language business request, understands the goal, creates its own dynamic task plan, executes the plan using controlled tools, synthesizes the results, performs a reflection/self-check, revises once if necessary, and generates a polished Microsoft Word `.docx` document.
 
 ## Features
 
@@ -8,7 +8,7 @@
 - **Controlled Tool Execution**: Maps LLM tasks to specific controlled internal tools (analysis, knowledge).
 - **Reflection & Self-Check**: Evaluates the generated draft against the original request and plan, and performs exactly one revision pass if meaningful issues are found. Reflection results fall into three distinct states: Passed, Revised, or Provider Error (with graceful fallback). This bounds the execution loop while improving output quality.
 - **Professional DOCX Generation**: Automatically generates request-specific, properly formatted `.docx` files using `python-docx`.
-- **Minimal SPA Frontend**: Visualizes the agent's autonomous workflow, showing the plan, assumptions, execution status, reflection results, and providing a download link for the document.
+- **Modern SPA Frontend**: Visualizes the agent's autonomous workflow, showing the plan, assumptions, execution status, reflection grades, execution duration, LLM call counts, and providing a download link for the document.
 
 ## Architecture
 

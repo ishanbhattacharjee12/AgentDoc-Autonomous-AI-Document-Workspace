@@ -64,21 +64,29 @@ def _run_reflection(
 
     try:
         raw = call_llm_json(REFLECTION_SYSTEM_PROMPT, user_prompt, temperature=0.3, max_tokens=500)
+        grade = raw.get("grade", "Acceptable")
+        # Consider it "passed" if it doesn't strictly need revision
+        passed = grade not in ["Needs revision", "Poor"]
+        
         result = ReflectionResult(
-            passed=raw.get("passed", True),
+            passed=passed,
+            grade=grade,
+            reason=raw.get("reason", ""),
             issues_found=raw.get("issues_found", []),
             improvements_applied=raw.get("improvements", raw.get("improvements_applied", [])),
             error=False
         )
-        logger.info("Reflection result: passed=%s, issues=%d", result.passed, len(result.issues_found))
+        logger.info("Reflection result: grade=%s, passed=%s, issues=%d", result.grade, result.passed, len(result.issues_found))
         return result
 
     except Exception as e:
-        logger.error("Reflection failed: %s. Defaulting to passed.", e)
+        logger.error("Reflection failed: %s. Defaulting to Acceptable.", e)
         return ReflectionResult(
-            passed=False,
+            passed=True, # Fail open gracefully
+            grade="Provider Error",
+            reason=f"Reflection skipped due to error: {str(e)[:80]}",
             issues_found=[],
-            improvements_applied=[f"Reflection skipped due to error: {str(e)[:80]}"],
+            improvements_applied=[],
             error=True
         )
 

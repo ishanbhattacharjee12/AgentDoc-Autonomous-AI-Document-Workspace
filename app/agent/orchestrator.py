@@ -36,6 +36,12 @@ def run_agent(request: str) -> AgentResponse:
     logger.info("=== Agent Pipeline Start ===")
     logger.info("Request: %s", request[:200])
 
+    import time
+    from app.llm.client import get_llm_call_count, reset_llm_call_count
+    
+    reset_llm_call_count()
+    start_time = time.time()
+
     try:
         # --- Step 1: Dynamic Planning ---
         logger.info("Step 1: Generating dynamic plan...")
@@ -70,6 +76,8 @@ def run_agent(request: str) -> AgentResponse:
             plan_tasks=plan_task_dicts,
             draft=draft,
         )
+        
+        revision_count = 1 if len(reflection.improvements_applied) > 0 else 0
 
         # --- Step 5: DOCX Generation ---
         logger.info("Step 5: Generating DOCX...")
@@ -81,6 +89,10 @@ def run_agent(request: str) -> AgentResponse:
             content=final_draft,
             goal=plan.goal,
         )
+
+        end_time = time.time()
+        total_time = round(end_time - start_time, 2)
+        llm_calls = get_llm_call_count()
 
         # --- Build Response ---
         plan_data = [
@@ -116,6 +128,8 @@ def run_agent(request: str) -> AgentResponse:
             execution_results=exec_data,
             reflection={
                 "passed": reflection.passed,
+                "grade": getattr(reflection, 'grade', 'Acceptable'),
+                "reason": getattr(reflection, 'reason', ''),
                 "issues_found": reflection.issues_found,
                 "improvements_applied": reflection.improvements_applied,
                 "error": reflection.error,
@@ -123,6 +137,9 @@ def run_agent(request: str) -> AgentResponse:
             summary=summary,
             document_filename=filename,
             document_url=f"/documents/{filename}",
+            total_execution_time=total_time,
+            llm_call_count=llm_calls,
+            revision_count=revision_count
         )
 
         logger.info("=== Agent Pipeline Complete: %s ===", filename)
@@ -130,9 +147,13 @@ def run_agent(request: str) -> AgentResponse:
 
     except Exception as e:
         logger.error("Agent pipeline failed: %s", e, exc_info=True)
+        end_time = time.time()
         return AgentResponse(
             status="failed",
             error=f"Agent pipeline error: {str(e)[:200]}",
+            total_execution_time=round(end_time - start_time, 2),
+            llm_call_count=get_llm_call_count(),
+            revision_count=0
         )
 
 

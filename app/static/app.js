@@ -9,6 +9,24 @@ function loadDemo(num) {
     document.getElementById("request-input").value = DEMO_INPUTS[num] || "";
 }
 
+// Initialize icons when document loads
+document.addEventListener("DOMContentLoaded", () => {
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+});
+
+function copyContent(elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    const text = el.innerText || el.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        // Optional: show small toast or change icon briefly
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+    });
+}
+
 async function runAgent() {
     const requestText = document.getElementById("request-input").value.trim();
     if (!requestText) {
@@ -46,6 +64,12 @@ async function runAgent() {
 }
 
 function renderResults(data) {
+    // Metrics
+    document.getElementById("metric-time").textContent = data.total_execution_time ? data.total_execution_time + " s" : "--";
+    document.getElementById("metric-llm").textContent = data.llm_call_count !== undefined ? data.llm_call_count : "--";
+    document.getElementById("metric-tasks").textContent = (data.plan && data.plan.length) ? data.plan.length : "--";
+    document.getElementById("metric-revisions").textContent = data.revision_count !== undefined ? data.revision_count : "--";
+
     // Goal
     document.getElementById("goal-text").textContent = data.goal || "N/A";
     const badge = document.getElementById("doctype-badge");
@@ -77,13 +101,16 @@ function renderResults(data) {
     const link = document.getElementById("download-link");
     if (data.document_url) {
         link.href = data.document_url;
-        link.textContent = "⬇ Download: " + (data.document_filename || "document.docx");
+        link.innerHTML = `<i data-lucide="download" style="margin-right: 8px;"></i> Download: ` + escapeHtml(data.document_filename || "document.docx");
         show("download-card");
     } else {
         hide("download-card");
     }
 
     show("results-section");
+    if (window.lucide) {
+        lucide.createIcons();
+    }
 }
 
 function renderPlanTable(plan) {
@@ -138,24 +165,44 @@ function renderExecution(results) {
 
 function renderReflection(reflection) {
     const container = document.getElementById("reflection-content");
+    const badge = document.getElementById("reflection-grade-badge");
+    
     if (!reflection) {
         container.innerHTML = "<p class='card-body'>Reflection not available.</p>";
+        badge.style.display = "none";
         return;
+    }
+
+    const grade = reflection.grade || "Acceptable";
+    badge.textContent = "Grade: " + grade;
+    badge.style.display = "inline-block";
+    
+    // Set badge color based on grade
+    if (grade === "Excellent" || grade === "Good") {
+        badge.className = "badge status-completed";
+    } else if (grade === "Acceptable") {
+        badge.className = "badge status-running";
+    } else {
+        badge.className = "badge status-failed";
     }
 
     let passedClass, passedText;
     if (reflection.error) {
         passedClass = "reflection-failed";
-        passedText = "⚠️ Reflection Skipped (Provider Error)";
+        passedText = "Reflection Skipped (Provider Error)";
     } else if (reflection.passed) {
         passedClass = "reflection-passed";
-        passedText = "✅ Quality Check Passed";
+        passedText = "Quality Check Passed";
     } else {
         passedClass = "reflection-failed";
-        passedText = "⚠️ Issues Found — Revision Applied";
+        passedText = "Issues Found — Revision Applied";
     }
 
     let html = `<div class="reflection-status ${passedClass}">${passedText}</div>`;
+    
+    if (reflection.reason) {
+        html += `<p style="color:var(--text-muted);font-size:0.95rem;margin-bottom:12px;"><strong>Reason:</strong> ${escapeHtml(reflection.reason)}</p>`;
+    }
 
     if (reflection.issues_found && reflection.issues_found.length) {
         html += `<p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:6px;">Issues identified:</p>

@@ -2,26 +2,31 @@
 
 REFLECTION_SYSTEM_PROMPT = """You are a quality assurance agent. Your job is to evaluate a generated document draft against the original request and execution plan.
 
-Evaluate the draft against these criteria:
-1. Does it address the original request fully?
-2. Are all planned sections present?
-3. Is the content logically consistent?
-4. Are assumptions clearly stated?
-5. Is the document useful for its intended audience?
-6. Are there unsupported claims presented as facts?
-7. Are there missing action items, priorities, or next steps?
-8. Are timelines and metrics specific enough (where relevant)?
-9. Are risks and mitigations addressed (where relevant)?
+Evaluate the draft against these specific quality criteria:
+1. Completeness: Does it address the original request fully? Are all planned sections present? Are there missing sections?
+2. Readability: Is it easy to skim? Does it use headings, bullets, and tables appropriately?
+3. Logical Consistency: Does the document flow well? Does it read like a single cohesive report?
+4. Professionalism: Is the tone appropriate for business and technical stakeholders?
+5. Actionable Recommendations: Are the next steps, timelines, and priorities clear and practical?
+6. Redundancy: Is there duplicated content or repeated explanations?
+7. Document Structure: Does it include an Executive Summary and Key Takeaways?
+
+GRADE THE DOCUMENT using exactly one of the following grades:
+- "Excellent": Exceeds expectations, ready for use.
+- "Good": Meets expectations, minor flaws acceptable.
+- "Acceptable": Usable, but could be better.
+- "Needs revision": Meaningful gaps, redundancy, or formatting issues that reduce usefulness.
+- "Poor": Fails to address the request or is structurally flawed.
 
 Return ONLY valid JSON (no markdown, no code fences):
 {
-  "passed": true/false,
+  "grade": "Excellent|Good|Acceptable|Needs revision|Poor",
+  "reason": "A concise explanation of WHY this grade was given based on the criteria.",
   "issues_found": ["issue 1", "issue 2"],
   "improvements": ["improvement 1", "improvement 2"]
 }
 
-Set "passed" to true if the document is adequate (minor issues are acceptable).
-Set "passed" to false ONLY if there are meaningful gaps or problems that would significantly reduce the document's usefulness."""
+Set "issues_found" and "improvements" to empty arrays if the grade is Acceptable, Good, or Excellent."""
 
 
 def build_reflection_prompt(
