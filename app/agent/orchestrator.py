@@ -52,9 +52,9 @@ def run_agent(request: str, progress_cb=None, require_review: bool = False, form
     logger.info("Request: %s", request[:200])
 
     import time
-    from app.llm.client import get_llm_call_count, reset_llm_call_count
+    from app.llm.client import get_llm_call_count, reset_llm_metrics, get_llm_tokens_used, get_llm_total_time
     
-    reset_llm_call_count()
+    reset_llm_metrics()
     start_time = time.time()
 
     try:
@@ -98,11 +98,14 @@ def run_agent(request: str, progress_cb=None, require_review: bool = False, form
         # --- Step 2: Sequential Execution ---
         if progress_cb: progress_cb(f"Executing {len(plan.tasks)} Tasks")
         logger.info("Step 2: Executing %d tasks sequentially...", len(plan.tasks))
+        t0 = time.time()
         execution_results = execute_plan(plan, request)
+        logger.info(f"[DIAGNOSTIC] Executor finished in {time.time() - t0:.2f}s")
 
         # --- Step 3: Synthesis ---
         if progress_cb: progress_cb("Synthesizing")
         logger.info("Step 3: Synthesizing results into document draft...")
+        t0 = time.time()
         draft = synthesize(
             request=request,
             goal=plan.goal,
@@ -110,6 +113,7 @@ def run_agent(request: str, progress_cb=None, require_review: bool = False, form
             assumptions=plan.assumptions,
             execution_results=execution_results,
         )
+        logger.info(f"[DIAGNOSTIC] Synthesizer finished in {time.time() - t0:.2f}s")
 
         # --- Step 4: Reflection / Self-Check ---
         if progress_cb: progress_cb("Reflecting")
@@ -118,6 +122,7 @@ def run_agent(request: str, progress_cb=None, require_review: bool = False, form
             {"task": t.task, "purpose": t.purpose, "tool": t.tool}
             for t in plan.tasks
         ]
+        t0 = time.time()
         reflection, final_draft = reflect_and_revise(
             request=request,
             goal=plan.goal,
@@ -126,6 +131,7 @@ def run_agent(request: str, progress_cb=None, require_review: bool = False, form
             plan_tasks=plan_task_dicts,
             draft=draft,
         )
+        logger.info(f"[DIAGNOSTIC] Reflection finished in {time.time() - t0:.2f}s")
         
         revision_count = 1 if len(reflection.improvements_applied) > 0 else 0
 
@@ -160,6 +166,14 @@ def run_agent(request: str, progress_cb=None, require_review: bool = False, form
             for r in execution_results
         ]
 
+        # --- Preview Generation ---
+        import markdown
+        try:
+            preview_html = markdown.markdown(final_draft, extensions=['tables', 'fenced_code'])
+        except Exception as e:
+            logger.error("HTML Preview generation failed: %s", e)
+            preview_html = f"<p>Preview generation failed: {str(e)}</p>"
+
         summary = _generate_summary(plan.goal, plan.document_type, len(plan.tasks), reflection.passed, reflection.error)
 
         response = AgentResponse(
@@ -187,8 +201,11 @@ def run_agent(request: str, progress_cb=None, require_review: bool = False, form
             summary=summary,
             document_filename=filename,
             document_url=f"/documents/{filename}",
+            preview_html=preview_html,
             total_execution_time=total_time,
             llm_call_count=llm_calls,
+            llm_tokens_used=get_llm_tokens_used(),
+            llm_total_time=get_llm_total_time(),
             revision_count=revision_count
         )
 
@@ -234,9 +251,9 @@ def execute_plan_only(edit_req: PlanEditRequest, progress_cb=None) -> AgentRespo
     logger.info("=== Agent Pipeline Resume ===")
     
     import time
-    from app.llm.client import get_llm_call_count, reset_llm_call_count
+    from app.llm.client import get_llm_call_count, reset_llm_metrics, get_llm_tokens_used, get_llm_total_time
     
-    reset_llm_call_count()
+    reset_llm_metrics()
     start_time = time.time()
     
     request = edit_req.request
@@ -319,6 +336,14 @@ def execute_plan_only(edit_req: PlanEditRequest, progress_cb=None) -> AgentRespo
             for r in execution_results
         ]
 
+        # --- Preview Generation ---
+        import markdown
+        try:
+            preview_html = markdown.markdown(final_draft, extensions=['tables', 'fenced_code'])
+        except Exception as e:
+            logger.error("HTML Preview generation failed: %s", e)
+            preview_html = f"<p>Preview generation failed: {str(e)}</p>"
+
         summary = _generate_summary(plan.goal, plan.document_type, len(plan.tasks), reflection.passed, reflection.error)
 
         response = AgentResponse(
@@ -346,8 +371,11 @@ def execute_plan_only(edit_req: PlanEditRequest, progress_cb=None) -> AgentRespo
             summary=summary,
             document_filename=filename,
             document_url=f"/documents/{filename}",
+            preview_html=preview_html,
             total_execution_time=total_time,
             llm_call_count=llm_calls,
+            llm_tokens_used=get_llm_tokens_used(),
+            llm_total_time=get_llm_total_time(),
             revision_count=revision_count
         )
 

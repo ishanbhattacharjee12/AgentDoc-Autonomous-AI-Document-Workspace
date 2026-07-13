@@ -23,10 +23,10 @@ def build_executor_prompt(
     goal: str,
     document_type: str,
     assumptions: list[str],
-    task: dict,
+    tasks: list[dict],
     previous_results: list[dict],
 ) -> str:
-    """Build a context-rich prompt for task execution."""
+    """Build a context-rich prompt for batched task execution."""
     prev_context = ""
     if previous_results:
         prev_summaries = []
@@ -36,7 +36,12 @@ def build_executor_prompt(
 
     assumptions_text = "\n".join(f"- {a}" for a in assumptions) if assumptions else "None specified"
 
-    return f"""Execute the following task as part of a larger document generation plan.
+    tasks_text = ""
+    for t in tasks:
+        tasks_text += f"\n- Task: {t.get('task', '')}\n  Purpose: {t.get('purpose', '')}\n  Tool: {t.get('tool', '')}"
+
+    return f"""Execute the following batch of tasks as part of a larger document generation plan.
+Your response should be a single, cohesive section that addresses ALL of these tasks without internal repetition.
 
 ORIGINAL REQUEST: {request}
 INTERPRETED GOAL: {goal}
@@ -45,12 +50,10 @@ DOCUMENT TYPE: {document_type}
 ASSUMPTIONS:
 {assumptions_text}
 
-CURRENT TASK:
-- Task: {task.get('task', '')}
-- Purpose: {task.get('purpose', '')}
-- Tool: {task.get('tool', '')}
+TASKS TO EXECUTE IN THIS PHASE:
+{tasks_text}
 {prev_context}
 
-Execute this task thoroughly. Provide detailed, actionable content that can be incorporated into the final document.
-Structure your output clearly with headers and bullet points where appropriate.
+Execute these tasks thoroughly. Provide detailed, actionable content that can be incorporated into the final document.
+Structure your output clearly with headers and bullet points where appropriate. Do NOT address tasks one by one if they overlap—synthesize your findings.
 Do NOT use markdown code fences."""

@@ -65,8 +65,8 @@ def _run_reflection(
     try:
         raw = call_llm_json(REFLECTION_SYSTEM_PROMPT, user_prompt, temperature=0.3, max_tokens=500)
         grade = raw.get("grade", "Satisfactory")
-        # Consider it "passed" if it doesn't strictly need revision
-        passed = grade not in ["Needs Revision", "Poor"]
+        # Only trigger the revision pass if the reflection grade is Needs Revision or Poor.
+        passed = grade in ["Excellent", "Good", "Satisfactory"]
         
         result = ReflectionResult(
             passed=passed,

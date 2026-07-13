@@ -10,6 +10,8 @@ from datetime import datetime
 from pathlib import Path
 import markdown
 from fpdf import FPDF
+from fpdf import FPDF
+from fpdf.enums import XPos, YPos
 
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
@@ -71,36 +73,51 @@ def generate_docx(
 
     doc = Document()
 
+    # --- Page Setup & Margins ---
+    for section in doc.sections:
+        section.top_margin = Inches(1.0)
+        section.bottom_margin = Inches(1.0)
+        section.left_margin = Inches(1.0)
+        section.right_margin = Inches(1.0)
+
     # --- Styles ---
     style = doc.styles['Normal']
     font = style.font
-    font.name = 'Calibri'
+    font.name = 'Arial'
     font.size = Pt(11)
+    style.paragraph_format.space_after = Pt(12)
+    style.paragraph_format.line_spacing = 1.15
 
     # --- Title ---
-    title_para = doc.add_heading(title, level=0)
+    title_para = doc.add_heading(level=0)
+    title_run = title_para.add_run(title)
+    title_run.font.name = 'Calibri'
+    title_run.font.size = Pt(24)
     title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     # --- Subtitle ---
     subtitle = doc.add_paragraph()
     subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = subtitle.add_run(f"Document Type: {document_type.replace('_', ' ').title()}")
-    run.font.size = Pt(12)
+    run.font.size = Pt(14)
     run.font.color.rgb = RGBColor(100, 100, 100)
 
     # --- Date ---
     date_para = doc.add_paragraph()
     date_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
     date_run = date_para.add_run(f"Generated: {datetime.now().strftime('%B %d, %Y')}")
-    date_run.font.size = Pt(10)
+    date_run.font.size = Pt(11)
     date_run.font.color.rgb = RGBColor(130, 130, 130)
 
     doc.add_paragraph()  # Spacer
 
     # --- Goal / Executive Summary ---
     if goal:
-        doc.add_heading("Executive Summary", level=1)
-        doc.add_paragraph(goal)
+        h = doc.add_heading(level=1)
+        r = h.add_run("Executive Summary")
+        r.font.color.rgb = RGBColor(41, 128, 185) # Professional Blue
+        exec_summary = doc.add_paragraph(goal)
+        exec_summary.paragraph_format.space_after = Pt(12)
 
     # --- Assumptions ---
     if assumptions:
@@ -183,46 +200,65 @@ def _generate_html(filepath: Path, title: str, document_type: str, assumptions: 
     return filename
 
 
+class PDF(FPDF):
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("helvetica", "I", 8)
+        self.set_text_color(128, 128, 128)
+        self.cell(0, 10, f"Page {self.page_no()}", align="C")
+
 def _generate_pdf(filepath: Path, title: str, document_type: str, assumptions: list[str], content: str, goal: str, filename: str) -> str:
-    pdf = FPDF()
+    pdf = PDF()
     pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.set_margins(25.4, 25.4, 25.4) # 1 inch margins
+    pdf.set_auto_page_break(auto=True, margin=25.4)
     
     # Title
     pdf.set_font("helvetica", "B", 24)
-    pdf.cell(0, 15, title.encode('latin-1', 'replace').decode('latin-1'), ln=True, align='C')
+    pdf.multi_cell(0, 12, title.encode('latin-1', 'replace').decode('latin-1'), new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+    pdf.ln(5)
     
     # Subtitle
     pdf.set_font("helvetica", "I", 12)
     pdf.set_text_color(100, 100, 100)
     subtitle = f"Document Type: {document_type.replace('_', ' ').title()}"
-    pdf.cell(0, 10, subtitle.encode('latin-1', 'replace').decode('latin-1'), ln=True, align='C')
+    pdf.cell(0, 8, subtitle.encode('latin-1', 'replace').decode('latin-1'), new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
     
     # Date
     pdf.set_font("helvetica", "", 10)
     pdf.set_text_color(130, 130, 130)
     date_str = f"Generated: {datetime.now().strftime('%B %d, %Y')}"
-    pdf.cell(0, 10, date_str.encode('latin-1', 'replace').decode('latin-1'), ln=True, align='C')
+    pdf.cell(0, 8, date_str.encode('latin-1', 'replace').decode('latin-1'), new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
     
-    pdf.ln(10)
+    pdf.ln(12)
     
     # Exec Summary
     pdf.set_text_color(0, 0, 0)
     if goal:
         pdf.set_font("helvetica", "B", 16)
-        pdf.cell(0, 10, "Executive Summary", ln=True)
+        pdf.set_text_color(41, 128, 185) # Professional Blue
+        pdf.cell(0, 10, "Executive Summary", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.set_font("helvetica", "", 11)
-        pdf.multi_cell(0, 6, goal.encode('latin-1', 'replace').decode('latin-1'))
-        pdf.ln(5)
+        pdf.set_text_color(0, 0, 0)
+        try:
+            pdf.multi_cell(0, 6, _break_long_words(goal).encode('latin-1', 'ignore').decode('latin-1'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        except Exception:
+            pdf.multi_cell(0, 6, "[Executive Summary omitted due to PDF rendering error]", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.ln(6)
         
     # Assumptions
     if assumptions:
         pdf.set_font("helvetica", "B", 16)
-        pdf.cell(0, 10, "Key Assumptions", ln=True)
+        pdf.set_text_color(41, 128, 185) # Professional Blue
+        pdf.cell(0, 10, "Key Assumptions", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.set_font("helvetica", "", 11)
+        pdf.set_text_color(0, 0, 0)
         for a in assumptions:
-            pdf.multi_cell(0, 6, f"- {a}".encode('latin-1', 'replace').decode('latin-1'))
-        pdf.ln(5)
+            try:
+                pdf.multi_cell(0, 6, _break_long_words(f"- {a}").encode('latin-1', 'ignore').decode('latin-1'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            except Exception:
+                pdf.multi_cell(0, 6, "- [Assumption omitted due to PDF rendering error]", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.ln(6)
         
     # Content - very basic Markdown to PDF for FPDF
     lines = content.split('\n')
@@ -234,24 +270,42 @@ def _generate_pdf(filepath: Path, title: str, document_type: str, assumptions: l
             
         if line.startswith('## '):
             pdf.set_font("helvetica", "B", 16)
-            pdf.cell(0, 10, line[3:].replace('**','').encode('latin-1', 'replace').decode('latin-1'), ln=True)
+            pdf.set_text_color(44, 62, 80) # Dark Blue/Grey
+            pdf.cell(0, 10, line[3:].replace('**','').encode('latin-1', 'ignore').decode('latin-1'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.set_text_color(0, 0, 0)
         elif line.startswith('### '):
             pdf.set_font("helvetica", "B", 14)
-            pdf.cell(0, 8, line[4:].replace('**','').encode('latin-1', 'replace').decode('latin-1'), ln=True)
+            pdf.set_text_color(52, 73, 94)
+            pdf.cell(0, 8, line[4:].replace('**','').encode('latin-1', 'ignore').decode('latin-1'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.set_text_color(0, 0, 0)
         elif line.startswith('#### '):
             pdf.set_font("helvetica", "B", 12)
-            pdf.cell(0, 7, line[5:].replace('**','').encode('latin-1', 'replace').decode('latin-1'), ln=True)
+            pdf.cell(0, 7, line[5:].replace('**','').encode('latin-1', 'ignore').decode('latin-1'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         elif line.startswith('- ') or line.startswith('* '):
             pdf.set_font("helvetica", "", 11)
             text = line[2:].replace('**', '')
-            pdf.multi_cell(0, 6, f"  •  {text}".encode('latin-1', 'replace').decode('latin-1'))
+            try:
+                # Add slight indent for bullets
+                current_x = pdf.get_x()
+                pdf.set_x(current_x + 5)
+                pdf.multi_cell(0, 6, _break_long_words(f"\x95  {text}").encode('latin-1', 'ignore').decode('latin-1'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            except Exception:
+                pass
         else:
             pdf.set_font("helvetica", "", 11)
             text = line.replace('**', '')
-            pdf.multi_cell(0, 6, text.encode('latin-1', 'replace').decode('latin-1'))
+            try:
+                pdf.multi_cell(0, 6, _break_long_words(text).encode('latin-1', 'ignore').decode('latin-1'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            except Exception:
+                pass
 
     pdf.output(str(filepath))
     return filename
+
+
+def _break_long_words(text: str, max_length: int = 50) -> str:
+    """Break long sequences of non-whitespace characters to prevent PDF rendering errors."""
+    return re.sub(r'(\S{' + str(max_length) + r'})', r'\1 ', text)
 
 
 def _add_content_sections(doc: Document, content: str) -> None:

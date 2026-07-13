@@ -1,46 +1,62 @@
 """AgentDoc LLM client.
 
-Wraps the Gemini API with retry logic and structured output parsing.
+Wraps the LLM API with retry logic and structured output parsing.
 Supports demo mode for testing when API key is unavailable.
 """
 
 import json
 import logging
 import re
+import time
 from typing import Optional
 
-from google import genai
-from google.genai import types
-from google.genai.errors import APIError
+import openai
 
 from app.config import (
-    GEMINI_API_KEY,
+    LLM_PROVIDER,
+    LLM_API_KEY,
+    LLM_BASE_URL,
     ACTIVE_MODEL,
     USE_DEMO_MODE
 )
 
 logger = logging.getLogger(__name__)
 
-_client: Optional[genai.Client] = None
+_client: Optional[openai.Client] = None
 _global_llm_calls: int = 0
+_global_tokens_used: int = 0
+_global_total_time: float = 0.0
 
 
 def get_llm_call_count() -> int:
     return _global_llm_calls
 
 
-def reset_llm_call_count() -> None:
-    global _global_llm_calls
+def get_llm_tokens_used() -> int:
+    return _global_tokens_used
+
+
+def get_llm_total_time() -> float:
+    return _global_total_time
+
+
+def reset_llm_metrics() -> None:
+    global _global_llm_calls, _global_tokens_used, _global_total_time
     _global_llm_calls = 0
+    _global_tokens_used = 0
+    _global_total_time = 0.0
 
 
-def get_client() -> genai.Client:
-    """Get or create the Gemini client singleton."""
+def get_client() -> openai.Client:
+    """Get or create the OpenAI-compatible client singleton."""
     global _client
     if _client is None:
-        if not GEMINI_API_KEY:
-            raise RuntimeError("GEMINI_API_KEY is not configured.")
-        _client = genai.Client(api_key=GEMINI_API_KEY)
+        if not LLM_API_KEY:
+            raise RuntimeError("LLM_API_KEY is not configured.")
+        _client = openai.Client(
+            api_key=LLM_API_KEY,
+            base_url=LLM_BASE_URL
+        )
     return _client
 
 
@@ -71,40 +87,58 @@ def call_llm(
 ) -> str:
     """Call the LLM and return the text response.
 
-    Uses demo mode if configured, otherwise calls Gemini API.
+    Uses demo mode if configured, otherwise calls the configured LLM API.
     Retries once on transient errors.
     """
-    global _global_llm_calls
+    global _global_llm_calls, _global_tokens_used, _global_total_time
     _global_llm_calls += 1
 
     if USE_DEMO_MODE:
-        return _demo_response(system_prompt, user_prompt)
+        start_time = time.time()
+        resp = _demo_response(system_prompt, user_prompt)
+        _global_total_time += (time.time() - start_time)
+        return resp
 
     client = get_client()
 
     for attempt in range(2):
         try:
-            response = client.models.generate_content(
+            start_time = time.time()
+            response = client.chat.completions.create(
                 model=ACTIVE_MODEL,
-                contents=user_prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    temperature=temperature,
-                    max_output_tokens=max_tokens,
-                )
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=temperature,
+                max_tokens=max_tokens,
             )
-            content = response.text
+            _global_total_time += (time.time() - start_time)
+
+            if response.usage:
+                _global_tokens_used += response.usage.total_tokens
+
+            content = response.choices[0].message.content
             if not content:
                 raise RuntimeError("LLM returned empty response.")
             return content.strip()
 
-        except APIError as e:
-            if e.code in (429, 500, 503, 504) and attempt == 0:
-                logger.warning("Transient LLM error (attempt %d): %s", attempt + 1, e)
+        except openai.RateLimitError as e:
+            if attempt == 0:
+                logger.warning("Rate limit hit, retrying after delay: %s", e)
+                time.sleep(2)
                 continue
-            elif e.code in (401, 403):
-                raise RuntimeError("Gemini authentication failed. Check your API key.") from e
+            raise RuntimeError(f"Rate limit exceeded: {_sanitize_error(e)}") from e
+        except openai.AuthenticationError as e:
+            raise RuntimeError("LLM authentication failed. Check your API key.") from e
+        except openai.APIError as e:
+            if attempt == 0:
+                logger.warning("Transient LLM error (attempt %d): %s", attempt + 1, e)
+                time.sleep(1)
+                continue
             raise RuntimeError(f"LLM API error: {_sanitize_error(e)}") from e
+        except Exception as e:
+            raise RuntimeError(f"Unexpected LLM call failure: {_sanitize_error(e)}") from e
 
     raise RuntimeError("LLM call failed unexpectedly.")
 

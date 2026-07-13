@@ -105,12 +105,14 @@ async function runAgent() {
         const url = `/agent/stream?request=${encodeURIComponent(requestText)}&require_review=${requireReview}&format=${format}`;
         const eventSource = new EventSource(url);
         
+        let finished = false;
         eventSource.onmessage = (event) => {
             const data = JSON.parse(event.data);
             
             if (data.type === "progress") {
                 updateStepper(data.stage);
             } else if (data.type === "result") {
+                finished = true;
                 eventSource.close();
                 if (data.data.status === "requires_review") {
                     showReviewScreen(data.data, requestText, format);
@@ -120,6 +122,7 @@ async function runAgent() {
                 hide("loading-section");
                 document.getElementById("run-btn").disabled = false;
             } else if (data.type === "error") {
+                finished = true;
                 eventSource.close();
                 showError(data.error);
                 hide("loading-section");
@@ -128,10 +131,10 @@ async function runAgent() {
         };
         
         eventSource.onerror = (err) => {
-            if (eventSource.readyState === EventSource.CLOSED) return;
+            if (finished) return;
             eventSource.close();
             console.error("SSE Error:", err);
-            showError("Connection to agent stream lost or failed to start.");
+            showError("Connection to agent stream lost or failed to start. (Check backend logs)");
             hide("loading-section");
             document.getElementById("run-btn").disabled = false;
         };
@@ -280,7 +283,14 @@ function renderResults(data) {
     // Metrics
     document.getElementById("metric-time").textContent = data.total_execution_time ? data.total_execution_time + " s" : "--";
     document.getElementById("metric-llm").textContent = data.llm_call_count !== undefined ? data.llm_call_count : "--";
-    document.getElementById("metric-tasks").textContent = (data.plan && data.plan.length) ? data.plan.length : "--";
+    document.getElementById("metric-tokens").textContent = data.llm_tokens_used !== undefined ? data.llm_tokens_used.toLocaleString() : "--";
+    
+    let avgTime = "--";
+    if (data.llm_call_count > 0 && data.llm_total_time > 0) {
+        avgTime = (data.llm_total_time / data.llm_call_count).toFixed(2);
+    }
+    document.getElementById("metric-avg-time").textContent = avgTime !== "--" ? avgTime + " s" : "--";
+    
     document.getElementById("metric-revisions").textContent = data.revision_count !== undefined ? data.revision_count : "--";
 
     // Goal
@@ -366,8 +376,11 @@ function renderResults(data) {
         link.innerHTML = `<i data-lucide="download" style="margin-right: 8px;"></i> Download ` + escapeHtml(data.document_filename || "Document");
         show("download-card");
         
-        // Simple preview (iframe)
-        if (data.document_url.endsWith('.html') || data.document_url.endsWith('.pdf')) {
+        // Native HTML Preview
+        if (data.preview_html) {
+            previewContainer.innerHTML = data.preview_html;
+            previewCard.style.display = "block";
+        } else if (data.document_url.endsWith('.html') || data.document_url.endsWith('.pdf')) {
             previewContainer.innerHTML = `<iframe src="${data.document_url}" width="100%" height="400px" style="border:none;"></iframe>`;
             previewCard.style.display = "block";
         } else if (data.document_url.endsWith('.md')) {

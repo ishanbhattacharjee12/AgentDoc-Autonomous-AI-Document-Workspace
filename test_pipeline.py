@@ -17,7 +17,5 @@ def run_test(prompt, format_ext="docx"):
 
 if __name__ == "__main__":
 
-    
-    run_test("Create a project plan for launching an AI-powered customer support chatbot for a mid-sized e-commerce company.", format_ext="html")
-    run_test("Create a Standard Operating Procedure (SOP) for new employee onboarding in a remote-first tech startup.", format_ext="pdf")
+    run_test("I need a recipe for a pizza, maybe also some background on pizza history.", format_ext="pdf")
     

@@ -44,7 +44,7 @@ AgentDoc_Project/
 │   │   ├── synthesizer.py     # Document draft synthesis
 │   │   └── reflector.py       # Reflection and revision logic
 │   ├── llm/
-│   │   └── client.py          # Gemini wrapper with retry
+│   │   └── client.py          # LLM API wrapper with retry logic
 │   ├── tools/
 │   │   ├── registry.py        # Tool allowlist
 │   │   ├── analysis_tool.py   # Analytical reasoning tool
@@ -64,7 +64,7 @@ AgentDoc_Project/
 
 ## Technologies
 
-- **Backend**: Python 3, FastAPI, Pydantic, python-docx, python-dotenv, Gemini API (google-genai).
+- **Backend**: Python 3, FastAPI, Pydantic, python-docx, python-dotenv, OpenAI SDK (openai).
 - **Frontend**: HTML5, CSS3, Vanilla JavaScript.
 
 ## Setup
@@ -87,14 +87,15 @@ AgentDoc_Project/
    ```
 
 4. **Configure Environment Variables:**
-   Copy the example config and edit it with your real Gemini API key:
+   Copy the example config and edit it with your real LLM API key:
+
    ```bash
    cp .env.example .env
-   ```
-   Edit `.env`:
-   ```
-   GEMINI_API_KEY=your_gemini_api_key_here
-   GEMINI_MODEL=gemini-2.5-flash
+   # Edit .env
+   LLM_PROVIDER=minimax
+   LLM_API_KEY=your_api_key_here
+   LLM_MODEL=minimax-text-01
+   LLM_BASE_URL=https://api.minimax.chat/v1
    ```
 
 ## Running the Application
@@ -146,8 +147,9 @@ We implemented a **Reflection/Self-Check stage** because LLM-generated documents
 
 After the initial synthesis step, the Reflector evaluates the draft against the original request, the generated plan, and any explicit assumptions. If it finds missing actions, unclear priorities, or unfulfilled requests, it performs exactly **one controlled revision pass**. This improves output quality substantially while keeping latency and API usage tightly bounded (no uncontrolled loops).
 
-### Debugging Insight: Gemini Rate Limits
-During testing, complex multi-step generations can trigger HTTP 429 Too Many Requests errors if tasks run too quickly in parallel. The underlying LLM client catches these transient rate limit errors and applies a structured backoff-and-retry mechanism specifically for the Gemini API (`google.genai.errors.APIError` handling), ensuring the full document can successfully generate without failing the entire pipeline.
+### Debugging Insight: Rate Limits
+
+During testing, complex multi-step generations can trigger HTTP 429 Too Many Requests errors if tasks run too quickly in parallel. The underlying LLM client catches these transient rate limit errors and applies a structured backoff-and-retry mechanism specifically for the LLM API (`openai.RateLimitError` handling), ensuring the full document can successfully generate without failing the entire pipeline.
 
 ## Error Recovery & Security
 

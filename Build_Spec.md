@@ -442,7 +442,7 @@ https://github.com/ishanbhattacharjee12/AgentDoc
 
 ------------------------------------------------------------
 
-Gemini API Key:
+LLM API Key:
 
 [REDACTED]
 
@@ -569,7 +569,7 @@ The objective is not to build a larger project.
 The objective is to build a noticeably smarter, more polished, more professional autonomous document intelligence platform that would stand out on an AI Engineer resume.
 
 ======================================================
-PHASE 3 — FLAGSHIP PORTFOLIO ENHANCEMENTS
+## PHASE 3 — FLAGSHIP PORTFOLIO ENHANCEMENTS
 ======================================================
 
 The following improvements should all reinforce the core purpose of AgentDoc as an autonomous document intelligence platform.
@@ -832,7 +832,7 @@ The following components must remain intact:
 
 ✓ FastAPI backend
 
-✓ Gemini integration
+✓ LLM integration
 
 ✓ SSE streaming
 
@@ -852,7 +852,7 @@ VERIFICATION
 
 After implementation:
 
-- Run multiple end-to-end tests using the real Gemini API.
+- Run multiple end-to-end tests using the real LLM API.
 - Verify multiple document types generate meaningfully different plans.
 - Verify human-in-the-loop plan editing works correctly.
 - Verify all export formats generate successfully.
@@ -867,7 +867,7 @@ After implementation:
 SECURITY
 ======================================================
 
-- Never expose the Gemini API key.
+- Never expose the LLM API key.
 - Ensure .env remains ignored.
 - Do not commit generated documents.
 - Preserve filesystem safety.
@@ -893,3 +893,4 @@ When complete:
    - Git commit and push status.
 
 The goal of this phase is to make AgentDoc a polished, flagship AI portfolio project that demonstrates strong software engineering, autonomous-agent design, explainability, controlled tool orchestration, and professional document generation, while keeping the implementation clean, maintainable, and focused.
+

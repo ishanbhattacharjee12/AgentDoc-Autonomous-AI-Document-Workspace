@@ -99,7 +99,10 @@ class AgentResponse(BaseModel):
     summary: str = ""
     document_filename: str = ""
     document_url: str = ""
+    preview_html: str = ""
     error: str = ""
     total_execution_time: float = 0.0
     llm_call_count: int = 0
+    llm_tokens_used: int = 0
+    llm_total_time: float = 0.0
     revision_count: int = 0

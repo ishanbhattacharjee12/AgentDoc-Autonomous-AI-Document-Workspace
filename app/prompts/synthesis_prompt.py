@@ -7,6 +7,7 @@ IMPORTANT RULES:
 - Seamlessly transition between topics and ideas. Maintain logical flow.
 - Ensure consistent terminology and a clear structural hierarchy.
 - AGGRESSIVELY DE-DUPLICATE INFORMATION. Do NOT repeat the same explanations across sections.
+- PRODUCE ACTIONABLE CONTENT WITH NO FILLER. Avoid generic corporate speak, fluff, or stating the obvious. Every sentence should carry weight.
 - Dynamically determine the most appropriate document structure based on the document type.
   - e.g., Project Plan: Executive Summary, Objectives, Scope, Timeline, Risks, KPIs, Recommendations.
   - e.g., Meeting Minutes: Meeting Details, Discussion, Decisions, Action Items, Next Meeting.

@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
-from app.config import OUTPUT_DIR, STATIC_DIR, GEMINI_API_KEY
+from app.config import OUTPUT_DIR, STATIC_DIR, LLM_API_KEY
 from app.models import AgentRequest, AgentResponse, PlanEditRequest
 from app.agent.orchestrator import run_agent, execute_plan_only
 
@@ -55,7 +55,7 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "AgentDoc",
-        "api_key_configured": bool(GEMINI_API_KEY),
+        "api_key_configured": bool(LLM_API_KEY),
     }
 
 
@@ -67,8 +67,8 @@ async def stream_process_request(request: str, require_review: bool = False, for
         
     logger.info("Received SSE request: %s", request[:100])
 
-    if not GEMINI_API_KEY:
-        raise HTTPException(status_code=503, detail="Gemini API key is not configured.")
+    if not LLM_API_KEY and not __import__("app.config", fromlist=["USE_DEMO_MODE"]).USE_DEMO_MODE:
+        raise HTTPException(status_code=503, detail="LLM API key is not configured.")
 
     import asyncio
     import json
@@ -113,8 +113,8 @@ async def stream_process_request(request: str, require_review: bool = False, for
 @app.post("/agent/execute/stream")
 async def stream_execute_plan(body: PlanEditRequest):
     """Execute a user-approved plan and stream progress via SSE."""
-    if not GEMINI_API_KEY:
-        raise HTTPException(status_code=503, detail="Gemini API key is not configured.")
+    if not LLM_API_KEY and not __import__("app.config", fromlist=["USE_DEMO_MODE"]).USE_DEMO_MODE:
+        raise HTTPException(status_code=503, detail="LLM API key is not configured.")
 
     import asyncio
     import json
@@ -157,8 +157,8 @@ async def process_request(body: AgentRequest):
     """Accept a natural-language request and run the autonomous agent pipeline."""
     logger.info("Received agent request: %s", body.request[:100])
 
-    if not GEMINI_API_KEY:
-        raise HTTPException(status_code=503, detail="Gemini API key is not configured.")
+    if not LLM_API_KEY and not __import__("app.config", fromlist=["USE_DEMO_MODE"]).USE_DEMO_MODE:
+        raise HTTPException(status_code=503, detail="LLM API key is not configured.")
 
     try:
         result = run_agent(body.request, require_review=body.require_review, format=body.format)
