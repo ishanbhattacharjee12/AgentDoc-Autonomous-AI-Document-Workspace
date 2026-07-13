@@ -21,12 +21,14 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 # LLM Provider Configuration
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "zen")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
-LLM_MODEL = os.getenv("LLM_MODEL", "hy3-free")
+LLM_MODEL = os.getenv("LLM_MODEL", "").strip()
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://opencode.ai/zen/v1")
 
 # Validation
 if not LLM_API_KEY:
     logging.warning("LLM_API_KEY is not set. Agent requests will fail in real execution mode.")
+if not LLM_MODEL:
+    logging.warning("LLM_MODEL is not set. Please set the LLM_MODEL environment variable (e.g., 'gpt-5.6-sol' or 'deepseek-v4-flash-free') before running real execution.")
 
 # Limits
 MAX_REQUEST_LENGTH = 2000

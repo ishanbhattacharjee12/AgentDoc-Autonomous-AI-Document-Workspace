@@ -61,14 +61,43 @@ def get_client() -> openai.Client:
 
 
 def clean_json_response(text: str) -> str:
-    """Strip markdown fences and whitespace from LLM JSON output."""
+    """Strip markdown fences, reasoning tags, and whitespace from LLM JSON output."""
     text = text.strip()
+    
+    # Remove XML-style tags that reasoning models often add
+    for tag in ["reasoning", "think", "analysis"]:
+        pattern = f"<{tag}>.*?</{tag}>"
+        text = re.sub(pattern, "", text, flags=re.DOTALL | re.IGNORECASE)
+    
+    text = text.strip()
+    
     # Remove ```json ... ``` or ``` ... ```
     pattern = r"^```(?:json)?\s*\n?(.*?)\n?\s*```$"
-    match = re.match(pattern, text, re.DOTALL)
+    match = re.search(pattern, text, re.DOTALL)
     if match:
         text = match.group(1).strip()
-    return text
+    
+    # If there's still conversational text like "Here is the JSON:", 
+    # try to extract just the first outermost { ... } or [ ... ] block
+    if not text.startswith("{") and not text.startswith("["):
+        first_brace = text.find("{")
+        first_bracket = text.find("[")
+        
+        start_idx = -1
+        if first_brace != -1 and first_bracket != -1:
+            start_idx = min(first_brace, first_bracket)
+        elif first_brace != -1:
+            start_idx = first_brace
+        elif first_bracket != -1:
+            start_idx = first_bracket
+            
+        if start_idx != -1:
+            end_char = "}" if text[start_idx] == "{" else "]"
+            end_idx = text.rfind(end_char)
+            if end_idx != -1:
+                text = text[start_idx:end_idx+1]
+                
+    return text.strip()
 
 
 def _sanitize_error(error: Exception) -> str:
