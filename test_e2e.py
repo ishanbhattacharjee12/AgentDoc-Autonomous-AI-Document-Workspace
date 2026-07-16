@@ -1,5 +1,8 @@
 import os
+import logging
 from app.agent.orchestrator import run_agent
+
+logging.basicConfig(level=logging.INFO)
 
 def main():
     print("Testing End-to-End Pipeline with OpenCode Zen...")
@@ -11,6 +14,7 @@ def main():
     print(f"Export Docs: {response.document_filename}")
     print(f"Tokens used: {response.llm_tokens_used}")
     print(f"Calls: {response.llm_call_count}")
+    print(f"Stage Metrics: {response.stage_metrics}")
     if response.summary and response.document_filename:
         print("\nSUCCESS!")
     else:

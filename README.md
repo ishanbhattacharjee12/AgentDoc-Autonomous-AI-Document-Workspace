@@ -2,16 +2,20 @@
 
 **AgentDoc – Autonomous Document Intelligence Platform** is a complete autonomous AI document-generation agent. It accepts a natural-language business request, understands the goal, creates its own dynamic task plan, executes the plan using controlled tools, synthesizes the results, performs a reflection/self-check, revises once if necessary, and generates a polished consulting-grade document.
 
-This repository features the **Phase 1 Release Candidate (RC1)** representing a complete React + TypeScript + Tailwind CSS modern SPA migration of the frontend web client, fully integrated with the Python FastAPI backend.
+This repository features the **Phase 2 Release Candidate (RC2)** representing a complete React + TypeScript + Tailwind CSS modern SPA migration of the frontend web client, fully integrated with the Python FastAPI backend, featuring a local document library history workspace (IndexedDB), workspace configurations defaults workspace (localStorage), interactive task checklist editor, and a comprehensive explainability dashboard.
+
+The Python FastAPI backend remains completely untouched and is 100% backward-compatible.
 
 ---
 
 ## 🚀 Key Features
 
 *   **Autonomous Dynamic Planning**: The LLM determines the goal, document type, complexity, confidence, assumptions, and task decomposition dynamically based on the input request.
-*   **Human-in-the-Loop (Review Mode)**: Optionally pause the autonomous workflow after planning to edit, modify, and approve tasks before execution resumes.
+*   **Human-in-the-Loop (Interactive Review Mode)**: Optionally pause the autonomous workflow after planning to edit, add, delete, and reorder plan task checklists inline before execution resumes.
 *   **Controlled Tool Execution**: Maps LLM tasks to specific controlled internal tools (analysis, knowledge, requirements analysis, compliance, cost-benefit, priority matrix).
-*   **Reflection & Quality Assessment**: Evaluates the generated draft against the original request and plan, returning professional grades. Performs exactly one revision pass if the grade is low, ensuring quality without infinite loops.
+*   **Explainability & Insights Workspace**: Translates planner outcomes (confidence, complexity, routing selections, self-check quality grades, planner assumptions) into user-focused summaries that explain *why* the agent chose specific strategies.
+*   **Client-Side IndexedDB History**: Automatically persists document drafts, prompts, metadata, and summaries locally. Includes keyword search filtering, a slide-out preview drawer, and quick download/delete actions.
+*   **localStorage Preferences Workspace**: Persists defaults (output format, pipeline mode, always review plan) and propagates them as form defaults.
 *   **Vellum & Ink Design Identity**: Clean, premium document-editorial workspace aesthetic using cool paper whites (`#F6F7F3`), deep graphite-green inks (`#1E2622`), and lab-teal primary accents (`#2C6E5C`).
 *   **Real-Time SSE Streaming**: Supports server-sent events for step tracking (stepper showing active/done pipeline tasks) and token-by-token document synthesis.
 *   **High Performance Throttled Rendering**: Employs `requestAnimationFrame` token buffering to prevent browser rendering thread locks during fast LLM output streams.
@@ -20,48 +24,61 @@ This repository features the **Phase 1 Release Candidate (RC1)** representing a 
 
 ## 🏗️ Architecture
 
-The document synthesis pipeline runs as follows:
+The document synthesis and review pipeline runs as follows:
 
 ```mermaid
 graph TD
     A[User Request] --> B[Validation & Intent Understanding]
     B --> C[Dynamic Planning & Assumptions]
-    C --> D[Sequential Task Execution]
-    D --> E[Result Synthesis]
-    E --> F[Draft Creation]
-    F --> G{Reflection & Self-Check}
-    G -- Issues Found --> H[One Revision Pass]
-    G -- Passed --> I[DOCX/PDF/MD Generation]
-    H --> I
-    I --> J[React Client Download & Preview]
+    C --> D{Review Mode enabled?}
+    D -- Yes --> E[Interactive PlanReviewEditor]
+    E --> F[User Mutates Plan & Resumes]
+    D -- No --> G[Sequential Task Execution]
+    F --> G
+    G --> H[Result Synthesis]
+    H --> I[Draft Creation]
+    I --> J{Reflection & Quality Self-Check}
+    J -- Issues Found --> K[One Revision Pass]
+    J -- Passed --> L[DOCX/PDF/MD Generation]
+    K --> L
+    L --> M[IndexedDB History Save]
+    M --> N[React Client Download & Insights Preview]
 ```
 
 ### React Client Architecture & Component Hierarchy
-The migrated frontend client uses modular components to separate state orchestration, network layer logic, and presentation:
+The migrated frontend client uses modular components to separate state orchestration, network layer logic, database/storage controllers, and presentation:
 
 ```
 frontend-react/src/
 ├── components/
 │   ├── layout/
-│   │   ├── AppShell/AppShell.tsx   # Persisted page layout wrapper
-│   │   └── Sidebar/Sidebar.tsx     # Navigation sidebar (keyboard-accessible)
+│   │   ├── AppShell/AppShell.tsx         # Persisted page layout wrapper
+│   │   └── Sidebar/Sidebar.tsx           # Navigation sidebar (keyboard-accessible)
 │   ├── document/
-│   │   ├── PipelineStageBadge.tsx  # Dynamic stage status indicator
-│   │   ├── StageTracker.tsx        # Horizontal stepper illustrating active step
-│   │   ├── StreamingDocumentViewer.tsx # Markdown renderer (ReactMarkdown)
-│   │   ├── StreamToolbar.tsx       # Standard cancel/reset controls
-│   │   ├── GenerationSummary.tsx   # Vertical executive metrics summary card
-│   │   └── TypingCursor.tsx        # Blinking cursor animation block
-│   └── ui/                         # shadcn/ui custom primitives (cards, switches)
+│   │   ├── PipelineStageBadge.tsx        # Dynamic stage status indicator
+│   │   ├── StageTracker.tsx              # Horizontal stepper illustrating active step
+│   │   ├── StreamingDocumentViewer.tsx   # Markdown renderer (ReactMarkdown)
+│   │   ├── StreamToolbar.tsx             # Standard cancel/reset controls
+│   │   ├── GenerationSummary.tsx         # Technical executive metrics summary card
+│   │   ├── PlanReviewEditor.tsx          # Inline plan task review checklist
+│   │   ├── InsightsPanel.tsx             # User-focused explainability dashboard grid
+│   │   └── TypingCursor.tsx              # Blinking cursor animation block
+│   ├── history/
+│   │   ├── HistoryCard.tsx               # Chronological list library item cards
+│   │   └── PreviewDrawer.tsx             # Slide-out details drawer overlay
+│   └── ui/                               # shadcn/ui custom primitives (cards, switches)
 ├── hooks/
-│   └── useStreamingBuffer.ts       # requestAnimationFrame throttled rendering hook
+│   ├── useStreamingBuffer.ts             # requestAnimationFrame throttled rendering hook
+│   ├── useHistory.ts                     # React hook for IndexedDB CRUD state management
+│   └── useSettings.ts                    # React hook for localStorage preference synchronization
 ├── services/
-│   └── api.ts                      # Network layer (health check, GET/POST SSE streams)
+│   ├── api.ts                            # Network layer (SSE streams, health checks)
+│   └── historyDB.ts                      # IndexedDB transactional persistence layer
 ├── types/
-│   └── api.ts                      # Type-safe schemas and models
-├── App.tsx                         # Router endpoints configuration
-├── main.tsx                        # Entrypoint with BrowserRouter context
-└── index.css                       # Design tokens and tailwind utilities
+│   └── api.ts                            # Type-safe schemas and models
+├── App.tsx                               # Router endpoints (Generate, History, Settings)
+├── main.tsx                              # Entrypoint with BrowserRouter context
+└── index.css                             # Design tokens, tailwind utilities, keyframe animations
 ```
 
 ---

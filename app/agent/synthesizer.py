@@ -17,6 +17,7 @@ def synthesize(
     document_type: str,
     assumptions: list[str],
     execution_results: list[dict],
+    token_cb=None,
 ) -> str:
     """Combine execution results into a document draft.
 
@@ -44,6 +45,7 @@ def synthesize(
             user_prompt,
             temperature=0.5,
             max_tokens=4000,
+            token_callback=token_cb,
         )
         logger.info("Synthesis completed: %d characters", len(draft))
         return draft

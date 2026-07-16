@@ -159,7 +159,7 @@ async def main():
         await page.locator("div.group").first.hover()
         await asyncio.sleep(0.2)
         await page.locator("button:has-text('Preview')").first.click()
-        await page.wait_for_selector("text=Document Preview")
+        await page.wait_for_selector("text=Document Details")
         await asyncio.sleep(0.5)
         
         history_preview_path = os.path.join(artifact_dir, "final_history_preview.png")

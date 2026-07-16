@@ -15,11 +15,12 @@
  */
 
 const DB_NAME = 'agentdoc_history'
-const DB_VERSION = 1
+const DB_VERSION = 2
 const STORE_NAME = 'documents'
 
 export interface HistoryEntry {
   id?: number
+  title?: string // User editable title, defaults to prompt snippet
   prompt: string
   summary: string
   document_filename: string
@@ -32,6 +33,8 @@ export interface HistoryEntry {
   // Future-proofing fields for Phase 3 enhancements
   is_favorite?: boolean
   tags?: string[]
+  categories?: string[]
+  is_archived?: boolean
   metadata?: Record<string, any>
 }
 
@@ -39,14 +42,52 @@ function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION)
 
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const db = request.result
+      let store: IDBObjectStore
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, {
+        store = db.createObjectStore(STORE_NAME, {
           keyPath: 'id',
           autoIncrement: true,
         })
+      } else {
+        store = request.transaction!.objectStore(STORE_NAME)
+      }
+
+      if (!store.indexNames.contains('created_at')) {
         store.createIndex('created_at', 'created_at', { unique: false })
+      }
+      if (!store.indexNames.contains('is_favorite')) {
+        store.createIndex('is_favorite', 'is_favorite', { unique: false })
+      }
+
+      // Perform safe backward-compatible data migration
+      if (event.oldVersion < 2) {
+        const cursorRequest = store.openCursor()
+        cursorRequest.onsuccess = (e: any) => {
+          const cursor = e.target.result
+          if (cursor) {
+            const data = cursor.value
+            let updated = false
+            if (data.is_favorite === undefined) {
+              data.is_favorite = false
+              updated = true
+            }
+            if (data.is_archived === undefined) {
+              data.is_archived = false
+              updated = true
+            }
+            if (data.title === undefined) {
+              const firstWords = data.prompt.split(' ').slice(0, 5).join(' ')
+              data.title = firstWords.length > 50 ? firstWords.slice(0, 47) + '...' : firstWords
+              updated = true
+            }
+            if (updated) {
+              cursor.update(data)
+            }
+            cursor.continue()
+          }
+        }
       }
     }
 
@@ -59,6 +100,17 @@ function openDB(): Promise<IDBDatabase> {
  * Save a new document entry to the history store.
  */
 export async function saveHistoryEntry(entry: Omit<HistoryEntry, 'id'>): Promise<number> {
+  // Ensure default title exists based on prompt
+  if (!entry.title) {
+    const firstWords = entry.prompt.split(' ').slice(0, 5).join(' ')
+    entry.title = firstWords.length > 50 ? firstWords.slice(0, 47) + '...' : firstWords
+  }
+  if (entry.is_favorite === undefined) {
+    entry.is_favorite = false
+  }
+  if (entry.is_archived === undefined) {
+    entry.is_archived = false
+  }
   const db = await openDB()
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite')
@@ -116,6 +168,63 @@ export async function clearAllHistory(): Promise<void> {
     const request = store.clear()
     request.onsuccess = () => resolve()
     request.onerror = () => reject(request.error)
+    tx.oncomplete = () => db.close()
+  })
+}
+
+/**
+ * Update a history entry with partial values (e.g. title rename, favorite toggle)
+ */
+export async function updateHistoryEntry(id: number, updates: Partial<HistoryEntry>): Promise<void> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    const store = tx.objectStore(STORE_NAME)
+    const getReq = store.get(id)
+    
+    getReq.onsuccess = () => {
+      const data = getReq.result
+      if (!data) {
+        reject(new Error(`History entry not found: ${id}`))
+        return
+      }
+      const updated = { ...data, ...updates }
+      const putReq = store.put(updated)
+      putReq.onsuccess = () => resolve()
+      putReq.onerror = () => reject(putReq.error)
+    }
+    getReq.onerror = () => reject(getReq.error)
+    tx.oncomplete = () => db.close()
+  })
+}
+
+/**
+ * Duplicate a history entry with content, updates, metadata, format, and stats
+ */
+export async function duplicateHistoryEntry(id: number): Promise<number> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    const store = tx.objectStore(STORE_NAME)
+    const getReq = store.get(id)
+    
+    getReq.onsuccess = () => {
+      const data = getReq.result
+      if (!data) {
+        reject(new Error(`History entry not found: ${id}`))
+        return
+      }
+      const { id: _, ...rest } = data
+      const duplicated = {
+        ...rest,
+        title: rest.title ? `Copy of ${rest.title}` : `Copy of ${rest.prompt.slice(0, 30)}...`,
+        created_at: new Date().toISOString()
+      }
+      const addReq = store.add(duplicated)
+      addReq.onsuccess = () => resolve(addReq.result as number)
+      addReq.onerror = () => reject(addReq.error)
+    }
+    getReq.onerror = () => reject(getReq.error)
     tx.oncomplete = () => db.close()
   })
 }

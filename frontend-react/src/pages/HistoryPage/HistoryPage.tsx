@@ -1,37 +1,125 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Clock, Search, Trash2, Plus, FileText } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { Clock, Search, Trash2, Plus, FileText, Star, SlidersHorizontal, Sparkles } from 'lucide-react'
 import { useHistory } from '@/hooks/useHistory'
 import { HistoryCard } from '@/components/history/HistoryCard'
 import { PreviewDrawer } from '@/components/history/PreviewDrawer'
 import type { HistoryEntry } from '@/services/historyDB'
 import { useNavigate } from 'react-router-dom'
 
+// Reusable config-driven draft templates array for the empty state
+const DRAFT_TEMPLATES = [
+  {
+    title: 'Chatbot Launch Plan',
+    description: 'Project plan for launching an AI-powered customer support chatbot.',
+    prompt: 'Create a project plan for launching an AI-powered customer support chatbot in a remote team context.',
+    mode: 'standard',
+  },
+  {
+    title: 'Distributed Onboarding Blueprint',
+    description: 'Onboarding roadmap for remote engineering personnel.',
+    prompt: 'We need to improve customer onboarding because users are dropping off, but we don\'t know exactly where...',
+    mode: 'advanced',
+  },
+  {
+    title: 'SaaS Pitch Proposal',
+    description: 'Pitch proposal presenting enterprise cloud services.',
+    prompt: 'Synthesize a formal pitch proposal for enterprise cloud services targeting executive stakeholders.',
+    mode: 'standard',
+  },
+]
+
 export const HistoryPage: React.FC = () => {
-  const { entries, isLoading, removeEntry, clearAll } = useHistory()
+  const { entries, isLoading, removeEntry, updateEntry, duplicateEntry, clearAll } = useHistory()
   const [searchQuery, setSearchQuery] = useState('')
+  const [formatFilter, setFormatFilter] = useState<string>('all')
+  const [modeFilter, setModeFilter] = useState<string>('all')
+  const [favoritesOnly, setFavoritesOnly] = useState<boolean>(false)
+  const [sortBy, setSortBy] = useState<string>('newest')
   const [selectedEntry, setSelectedEntry] = useState<HistoryEntry | null>(null)
   const navigate = useNavigate()
 
-  // Filter history entries by search query
-  const filteredEntries = entries.filter((entry) => {
-    const query = searchQuery.toLowerCase().trim()
-    if (!query) return true
-    return (
-      entry.prompt.toLowerCase().includes(query) ||
-      (entry.summary && entry.summary.toLowerCase().includes(query)) ||
-      (entry.document_filename && entry.document_filename.toLowerCase().includes(query))
-    )
-  })
+  // 1. Memoized list of the last 3 generated documents (uncorrupted by search/filtering rules)
+  const recentEntries = useMemo(() => {
+    return [...entries]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 3)
+  }, [entries])
+
+  // 2. Memoized, filtered, and sorted history entries list
+  const processedEntries = useMemo(() => {
+    // A. Filter entries
+    let result = entries.filter((entry) => {
+      // Full text search (matches prompt, title, and synopsis/summary)
+      const query = searchQuery.toLowerCase().trim()
+      const matchesSearch =
+        !query ||
+        entry.prompt.toLowerCase().includes(query) ||
+        (entry.title && entry.title.toLowerCase().includes(query)) ||
+        (entry.summary && entry.summary.toLowerCase().includes(query)) ||
+        (entry.document_filename && entry.document_filename.toLowerCase().includes(query))
+
+      // Format filter (PDF / Word / Markdown)
+      const matchesFormat =
+        formatFilter === 'all' || (entry.format || 'pdf').toLowerCase() === formatFilter
+
+      // Execution mode filter (Standard / Advanced / Adaptive)
+      const matchesMode =
+        modeFilter === 'all' || (entry.mode || 'standard').toLowerCase() === modeFilter
+
+      // Favorites Only toggle filter
+      const matchesFavorites = !favoritesOnly || !!entry.is_favorite
+
+      return matchesSearch && matchesFormat && matchesMode && matchesFavorites
+    })
+
+    // B. Sort entries
+    result.sort((a, b) => {
+      // Newest First (default)
+      if (sortBy === 'newest') {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      }
+      // Oldest First
+      if (sortBy === 'oldest') {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      }
+      // Title: A-Z
+      if (sortBy === 'title-asc') {
+        const titleA = (a.title || a.prompt).toLowerCase()
+        const titleB = (b.title || b.prompt).toLowerCase()
+        return titleA.localeCompare(titleB)
+      }
+      // Title: Z-A
+      if (sortBy === 'title-desc') {
+        const titleA = (a.title || a.prompt).toLowerCase()
+        const titleB = (b.title || b.prompt).toLowerCase()
+        return titleB.localeCompare(titleA)
+      }
+      return 0
+    })
+
+    return result
+  }, [entries, searchQuery, formatFilter, modeFilter, favoritesOnly, sortBy])
 
   const handleClearAll = () => {
-    if (window.confirm('Are you sure you want to clear all document generation history? This action cannot be undone.')) {
+    if (
+      window.confirm(
+        'Are you sure you want to clear all document generation history? This action cannot be undone.'
+      )
+    ) {
       clearAll()
       setSelectedEntry(null)
     }
+  }
+
+  // Template prompt click handler - navigates to GeneratePage with state
+  const handleSelectTemplate = (prompt: string, mode: string) => {
+    navigate('/generate', { state: { prompt, mode } })
   }
 
   return (
@@ -39,9 +127,9 @@ export const HistoryPage: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Document History</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Document Library</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Review, search, and download your previously generated document drafts.
+            Review, search, sort, and duplicate your previously generated document drafts.
           </p>
         </div>
         {entries.length > 0 && (
@@ -51,34 +139,147 @@ export const HistoryPage: React.FC = () => {
             onClick={handleClearAll}
             className="text-destructive hover:text-destructive hover:bg-destructive/5 shrink-0 border-destructive/20 hover:border-destructive/30 cursor-pointer self-start md:self-auto gap-2"
           >
-            <Trash2 className="h-4 w-4" /> Clear All History
+            <Trash2 className="h-4 w-4" /> Clear Library
           </Button>
         )}
       </div>
 
-      {/* Main Content Card */}
+      {/* Recent Documents Row */}
+      {entries.length > 0 && !isLoading && (
+        <div className="flex flex-col gap-2.5">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 pl-0.5">
+            <Clock className="h-3.5 w-3.5" /> Recent Documents
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {recentEntries.map((item) => (
+              <Card
+                key={`recent-${item.id}`}
+                className="group border border-border/75 hover:border-primary/30 transition-all cursor-pointer bg-card/45 hover:bg-card hover:shadow-sm"
+                onClick={() => setSelectedEntry(item)}
+              >
+                <CardContent className="p-4 flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold text-primary bg-primary/8 px-1.5 py-0.2 rounded uppercase shrink-0">
+                      {(item.format || 'pdf').toUpperCase()}
+                    </span>
+                    {item.is_favorite && (
+                      <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500 shrink-0" />
+                    )}
+                  </div>
+                  <h3 className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors pr-1">
+                    {item.title || item.prompt}
+                  </h3>
+                  <span className="text-[10px] text-muted-foreground font-normal">
+                    {new Date(item.created_at).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </span>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Main Document Library Controls & Listings */}
       <Card className="border-border shadow-sm">
-        <CardHeader className="border-b border-border pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-muted/10">
+        <CardHeader className="border-b border-border pb-4 flex flex-col gap-4 bg-muted/10">
           <div className="flex flex-col gap-1">
             <CardTitle className="text-base flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" /> Document Library
+              <SlidersHorizontal className="h-4 w-4 text-muted-foreground" /> Document Finder & Filters
             </CardTitle>
             <CardDescription>
-              A listing of all documents synthesized by the agent pipeline. Saved locally in your browser.
+              Narrow down document lists by query keywords, formats, modes, or favorites toggle.
             </CardDescription>
           </div>
 
-          {/* Search bar inside header */}
+          {/* Filtering Control Bar */}
           {entries.length > 0 && (
-            <div className="relative w-full md:w-72">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search prompt, synopsis..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9 w-full bg-background"
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+              {/* Keyword Search */}
+              <div className="relative col-span-1 lg:col-span-2">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search title, prompt, synopsis..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-9 w-full bg-background"
+                />
+              </div>
+
+              {/* Format Filter Selection */}
+              <div className="flex flex-col gap-1 text-left">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
+                  Format
+                </label>
+                <Select value={formatFilter} onValueChange={(val) => setFormatFilter(val || 'all')}>
+                  <SelectTrigger className="h-9 w-full bg-background">
+                    <SelectValue placeholder="All Formats" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Formats</SelectItem>
+                    <SelectItem value="pdf">PDF Documents</SelectItem>
+                    <SelectItem value="docx">Word (DOCX)</SelectItem>
+                    <SelectItem value="md">Markdown (MD)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Mode Filter Selection */}
+              <div className="flex flex-col gap-1 text-left">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
+                  Pipeline Mode
+                </label>
+                <Select value={modeFilter} onValueChange={(val) => setModeFilter(val || 'all')}>
+                  <SelectTrigger className="h-9 w-full bg-background">
+                    <SelectValue placeholder="All Modes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Modes</SelectItem>
+                    <SelectItem value="standard">Standard Mode</SelectItem>
+                    <SelectItem value="advanced">Advanced Mode</SelectItem>
+                    <SelectItem value="adaptive">Adaptive Mode</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sort Dropdown Selection */}
+              <div className="flex flex-col gap-1 text-left">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
+                  Sort By
+                </label>
+                <Select value={sortBy} onValueChange={(val) => setSortBy(val || 'newest')}>
+                  <SelectTrigger className="h-9 w-full bg-background">
+                    <SelectValue placeholder="Sort order" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="oldest">Oldest First</SelectItem>
+                    <SelectItem value="title-asc">Title: A-Z</SelectItem>
+                    <SelectItem value="title-desc">Title: Z-A</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          {/* Toggle Switch Favorites Only bar */}
+          {entries.length > 0 && (
+            <div className="flex items-center gap-3 pl-1 pt-1">
+              <Switch
+                id="favorites-only-switch"
+                checked={favoritesOnly}
+                onCheckedChange={setFavoritesOnly}
               />
+              <label
+                htmlFor="favorites-only-switch"
+                className="text-xs font-medium text-foreground cursor-pointer select-none flex items-center gap-1.5"
+              >
+                <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" /> Show Starred/Favorites Only
+              </label>
             </div>
           )}
         </CardHeader>
@@ -88,42 +289,81 @@ export const HistoryPage: React.FC = () => {
             /* Loading State Skeleton */
             <div className="flex flex-col gap-3">
               {[1, 2, 3].map((n) => (
-                <div key={n} className="h-28 w-full bg-muted/20 animate-pulse rounded-lg border border-border/60" />
+                <div
+                  key={n}
+                  className="h-28 w-full bg-muted/20 animate-pulse rounded-lg border border-border/60"
+                />
               ))}
             </div>
           ) : entries.length === 0 ? (
-            /* Empty State */
-            <EmptyState
-              title="No generated documents yet"
-              description="Your generated documents will persist locally in IndexedDB automatically. Run a new generation pipeline to populate your history list."
-              icon={FileText}
-              action={
-                <Button onClick={() => navigate('/generate')} className="gap-2 cursor-pointer">
-                  <Plus className="h-4 w-4" /> Generate New Document
-                </Button>
-              }
-            />
-          ) : filteredEntries.length === 0 ? (
-            /* Search No Results State */
+            /* Empty State with draft templates config */
+            <div className="flex flex-col gap-6 items-center py-6 text-center max-w-xl mx-auto">
+              <EmptyState
+                title="Your Document Library is empty"
+                description="Your generated documents will persist locally in IndexedDB automatically. Get started instantly with one of our business blueprint templates:"
+                icon={FileText}
+                action={
+                  <Button onClick={() => navigate('/generate')} className="gap-2 cursor-pointer">
+                    <Plus className="h-4 w-4" /> Start Custom Draft
+                  </Button>
+                }
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 w-full mt-2">
+                {DRAFT_TEMPLATES.map((tpl, i) => (
+                  <Card
+                    key={`template-${i}`}
+                    className="border border-border/80 hover:border-primary/30 bg-muted/10 hover:bg-background transition-all text-left cursor-pointer p-4 flex flex-col justify-between"
+                    onClick={() => handleSelectTemplate(tpl.prompt, tpl.mode)}
+                  >
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-1.5 text-primary">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        <h4 className="text-xs font-bold leading-tight">{tpl.title}</h4>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-normal font-normal">
+                        {tpl.description}
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-semibold text-primary/80 mt-3 hover:underline">
+                      Use Template →
+                    </span>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ) : processedEntries.length === 0 ? (
+            /* Search/Filter No Results State */
             <EmptyState
               title="No matching documents found"
-              description={`We couldn't find any documents matching "${searchQuery}". Try adjusting your keywords or clearing the search query.`}
+              description="We couldn't find any documents matching your select search queries or filters. Try adjusting query terms or filters."
               icon={Search}
               action={
-                <Button variant="outline" onClick={() => setSearchQuery('')} className="cursor-pointer">
-                  Clear Search Query
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchQuery('')
+                    setFormatFilter('all')
+                    setModeFilter('all')
+                    setFavoritesOnly(false)
+                  }}
+                  className="cursor-pointer"
+                >
+                  Clear Filters & Reset
                 </Button>
               }
             />
           ) : (
-            /* History Grid List */
+            /* History Listing Grid */
             <div className="grid grid-cols-1 gap-4">
-              {filteredEntries.map((entry) => (
+              {processedEntries.map((entry) => (
                 <HistoryCard
                   key={entry.id}
                   entry={entry}
                   onPreview={setSelectedEntry}
                   onDelete={removeEntry}
+                  onUpdate={updateEntry}
+                  onDuplicate={duplicateEntry}
                 />
               ))}
             </div>
@@ -135,6 +375,7 @@ export const HistoryPage: React.FC = () => {
       <PreviewDrawer
         entry={selectedEntry}
         onClose={() => setSelectedEntry(null)}
+        onUpdate={updateEntry}
       />
     </div>
   )

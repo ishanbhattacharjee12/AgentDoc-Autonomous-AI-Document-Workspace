@@ -16,6 +16,8 @@ class AgentRequest(BaseModel):
     request: str = Field(..., min_length=1, max_length=2000)
     require_review: bool = Field(default=False)
     format: str = Field(default="docx")
+    mode: str = Field(default="standard")
+    ignore_cache: bool = Field(default=False)
 
     @field_validator("request")
     @classmethod
@@ -57,6 +59,8 @@ class PlanEditRequest(BaseModel):
     """Approved or edited plan to resume execution."""
     request: str = Field(..., min_length=1)
     format: str = Field(default="docx")
+    mode: str = Field(default="standard")
+    ignore_cache: bool = Field(default=False)
     planner_output: PlannerOutput
 
 
@@ -106,3 +110,14 @@ class AgentResponse(BaseModel):
     llm_tokens_used: int = 0
     llm_total_time: float = 0.0
     revision_count: int = 0
+    stage_metrics: Optional[dict] = None
+    provider: str = ""
+    model_name: str = ""
+    cache_status: str = ""
+    routing_outcome: str = ""
+    fallback_reason: str = ""
+    budget_warnings: list[str] = Field(default_factory=list)
+    cache_timestamp: float = 0.0
+    cache_age: float = 0.0
+    cache_key: str = ""
+

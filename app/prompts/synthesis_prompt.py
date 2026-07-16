@@ -3,20 +3,24 @@
 SYNTHESIS_SYSTEM_PROMPT = """You are a document synthesis agent. Your job is to synthesize multiple task execution results into a single, cohesive, highly professional document.
 
 IMPORTANT RULES:
-- The final document MUST read like a professionally written report authored by a single expert, NOT a concatenation of isolated task outputs.
+- The final document MUST read like a cohesive, authoritative report authored by senior consultants at McKinsey, BCG, or Deloitte, NOT a concatenation of isolated task outputs.
+- Use confident, direct, and active-voice business language. Never use AI preambles or filler like "this section outlines...", "the following discusses...", or "comprehensive analysis...".
 - Seamlessly transition between topics and ideas. Maintain logical flow.
 - Ensure consistent terminology and a clear structural hierarchy.
 - AGGRESSIVELY DE-DUPLICATE INFORMATION. Do NOT repeat the same explanations across sections.
 - PRODUCE ACTIONABLE CONTENT WITH NO FILLER. Avoid generic corporate speak, fluff, or stating the obvious. Every sentence should carry weight.
-- Dynamically determine the most appropriate document structure based on the document type.
-  - e.g., Project Plan: Executive Summary, Objectives, Scope, Timeline, Risks, KPIs, Recommendations.
-  - e.g., Meeting Minutes: Meeting Details, Discussion, Decisions, Action Items, Next Meeting.
-  - e.g., SOP: Purpose, Scope, Responsibilities, Procedure, Exceptions.
-  - e.g., Technical Design: Overview, Architecture, Components, Risks, Tradeoffs, Future Work.
-  - e.g., Vendor Evaluation: Evaluation Criteria, Comparison Matrix, Risk Analysis, Recommendation.
-- Use professional formatting: clear section headings, bullet points, numbered lists, and markdown tables where appropriate.
-- Write in a professional tone appropriate for business stakeholders and technical readers alike.
-- Clearly label any assumptions.
+- Dynamically determine the most appropriate document structure based on the document type, matching the specific template style.
+- Include a compact "Decision Snapshot" markdown table near the beginning (under the title) containing columns: Priority, Risk, Investment, Timeline, Expected ROI, and Confidence.
+- Immediately after the Executive Summary, include a "Key Takeaways" section.
+- Split recommendations into Immediate, Short-Term, and Long-Term action categories wherever appropriate.
+- Strengthen the Executive Summary section by explicitly starting it with bold headings: **Problem**, **Approach**, **Business Impact**, **Recommendation**, **Expected Outcome**, and **Estimated Timeline**.
+- Structuring task/phase sections consistently. Every section corresponding to a plan phase/task must include these exact subheadings:
+  - `### Summary` (2–3 paragraph executive briefing of findings and actions)
+  - `### Key Findings` (3–6 specific, document-specific findings as bullet points)
+  - `### Recommendations` (Immediate, Short-Term, and Long-Term actionable recommendations)
+  - `### Risks & Tradeoffs` (with explicit bold labels: **Primary Risk:** [risk description], **Mitigation:** [mitigation strategy], **Tradeoff:** [tradeoff description])
+  - `### Deliverables` (bulleted list of specific, actual outputs generated)
+  - `### Conclusion` (brief concluding summary)
 - Do NOT add markdown code fences. Do NOT include raw JSON."""
 
 
@@ -30,8 +34,11 @@ def build_synthesis_prompt(
     """Build the synthesis prompt from execution results."""
     results_text = ""
     for r in execution_results:
-        results_text += f"\n\n--- TASK: {r.get('task', '')} (Tool: {r.get('tool', '')}) ---\n"
-        results_text += r.get("content", r.get("summary", ""))
+        content_val = r.get("content", "").strip()
+        if not content_val:
+            content_val = r.get("summary", "").strip()
+        if content_val:
+            results_text += f"\n\n--- TASK: {r.get('task', '')} ---\n{content_val}"
 
     assumptions_text = "\n".join(f"- {a}" for a in assumptions) if assumptions else "None"
 

@@ -1,25 +1,56 @@
-import React from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import type { HistoryEntry } from '@/services/historyDB'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { X, Download, FileText, Clock, Cpu, Zap } from 'lucide-react'
+import { X, Download, FileText, Clock, Cpu, Zap, Pencil } from 'lucide-react'
 import { getDocumentDownloadUrl } from '@/services/api'
 
 interface PreviewDrawerProps {
   entry: HistoryEntry | null
   onClose: () => void
+  onUpdate: (id: number, updates: Partial<HistoryEntry>) => void
 }
 
-export const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entry, onClose }) => {
+export const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entry, onClose, onUpdate }) => {
   if (!entry) return null
 
   const formatLabel = (entry.format || 'pdf').toUpperCase()
+  const [isEditing, setIsEditing] = useState(false)
+  const [tempTitle, setTempTitle] = useState(entry.title || '')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setTempTitle(entry.title || '')
+  }, [entry.title])
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [isEditing])
+
+  const handleSave = () => {
+    setIsEditing(false)
+    if (tempTitle.trim() && tempTitle !== entry.title && entry.id != null) {
+      onUpdate(entry.id, { title: tempTitle.trim() })
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSave()
+    } else if (e.key === 'Escape') {
+      setIsEditing(false)
+      setTempTitle(entry.title || '')
+    }
+  }
 
   return (
     <>
       {/* Backdrop overlay */}
       <div
-        className="fixed inset-0 bg-black/30 z-40 animate-[fadeIn_0.15s_ease-out]"
+        className="fixed inset-0 bg-black/35 z-40 animate-[fadeIn_0.15s_ease-out]"
         onClick={onClose}
       />
 
@@ -33,8 +64,8 @@ export const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entry, onClose }) 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/10 shrink-0">
           <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-semibold text-foreground">Document Preview</h2>
+            <FileText className="h-4.5 w-4.5 text-primary" />
+            <h2 className="text-sm font-semibold text-foreground">Document Details</h2>
           </div>
           <Button
             variant="ghost"
@@ -49,46 +80,73 @@ export const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entry, onClose }) 
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto">
+          {/* Editable Title Section */}
+          <div className="px-6 py-5 border-b border-border bg-muted/5">
+            {isEditing ? (
+              <input
+                ref={inputRef}
+                type="text"
+                value={tempTitle}
+                onChange={(e) => setTempTitle(e.target.value)}
+                onBlur={handleSave}
+                onKeyDown={handleKeyDown}
+                className="w-full text-base font-bold text-foreground bg-muted/40 border border-primary/30 rounded px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-primary focus:bg-background"
+              />
+            ) : (
+              <div className="flex items-start justify-between gap-2 group/drawer-title">
+                <h1 className="text-base font-bold text-foreground leading-snug">
+                  {entry.title || entry.prompt}
+                </h1>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-muted-foreground/50 hover:text-primary opacity-0 group-hover/drawer-title:opacity-100 focus:opacity-100 transition-opacity rounded cursor-pointer shrink-0 mt-0.5"
+                  onClick={() => setIsEditing(true)}
+                  aria-label="Rename document"
+                >
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+          </div>
+
           {/* Prompt section */}
           <div className="px-6 py-5 border-b border-border">
             <p className="text-[11px] font-semibold uppercase text-muted-foreground tracking-wider mb-2">
               Original Prompt
             </p>
-            <p className="text-sm text-foreground leading-relaxed">
+            <p className="text-sm text-foreground/90 leading-relaxed font-normal">
               {entry.prompt}
             </p>
           </div>
 
           {/* Metadata grid */}
-          <div className="px-6 py-4 border-b border-border grid grid-cols-2 gap-3">
+          <div className="px-6 py-4 border-b border-border grid grid-cols-2 gap-3.5 bg-muted/5">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Clock className="h-3.5 w-3.5" />
+              <Clock className="h-3.5 w-3.5 text-muted-foreground/75" />
               <span>{new Date(entry.created_at).toLocaleString('en-US', {
                 month: 'short', day: 'numeric', year: 'numeric',
                 hour: 'numeric', minute: '2-digit',
               })}</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/20 text-primary">
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/20 text-primary bg-primary/4 uppercase font-medium">
                 {formatLabel}
               </Badge>
-              <span className="capitalize">{entry.mode || 'standard'}</span>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 capitalize text-muted-foreground bg-muted/70">
+                {entry.mode || 'standard'}
+              </Badge>
             </div>
             {entry.time_taken != null && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Zap className="h-3.5 w-3.5" />
-                <span>{entry.time_taken.toFixed(1)}s pipeline</span>
+                <Zap className="h-3.5 w-3.5 text-muted-foreground/75" />
+                <span>{entry.time_taken.toFixed(1)}s generation</span>
               </div>
             )}
             {entry.active_model && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Cpu className="h-3.5 w-3.5" />
-                <span>{entry.active_model}</span>
-              </div>
-            )}
-            {entry.llm_call_count != null && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground col-span-2">
-                <span>{entry.llm_call_count} LLM calls</span>
+                <Cpu className="h-3.5 w-3.5 text-muted-foreground/75" />
+                <span className="truncate">{entry.active_model}</span>
               </div>
             )}
           </div>
@@ -99,11 +157,11 @@ export const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entry, onClose }) 
               Document Summary
             </p>
             {entry.summary ? (
-              <div className="prose prose-sm max-w-none text-foreground leading-relaxed text-sm">
+              <div className="prose prose-sm max-w-none text-foreground/90 leading-relaxed text-sm font-normal">
                 {entry.summary}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground italic">
+              <p className="text-sm text-muted-foreground italic font-normal">
                 No summary available for this document.
               </p>
             )}
@@ -111,17 +169,17 @@ export const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entry, onClose }) 
         </div>
 
         {/* Footer actions */}
-        <div className="px-6 py-4 border-t border-border bg-muted/5 shrink-0 flex items-center gap-3">
+        <div className="px-6 py-4 border-t border-border bg-muted/10 shrink-0 flex items-center gap-3">
           <a
             href={getDocumentDownloadUrl(entry.document_filename)}
             download
-            className="inline-flex items-center justify-center rounded-md text-sm font-semibold transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/95 h-10 flex-1 gap-2"
+            className="inline-flex items-center justify-center rounded-md text-sm font-semibold transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/95 h-10 flex-1 gap-2 cursor-pointer"
           >
             <Download className="h-4 w-4" /> Download {formatLabel}
           </a>
           <Button
             variant="outline"
-            className="h-10 cursor-pointer"
+            className="h-10 cursor-pointer text-muted-foreground hover:text-foreground"
             onClick={onClose}
           >
             Close

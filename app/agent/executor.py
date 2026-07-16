@@ -17,6 +17,14 @@ def execute_plan(plan: PlannerOutput, request: str) -> list[dict]:
 
     Returns a list of execution result dicts mapped back to individual tasks.
     """
+    from app.agent.state import PipelineState
+    state = PipelineState(
+        request=request,
+        goal=plan.goal,
+        document_type=plan.document_type,
+        assumptions=plan.assumptions
+    )
+    
     results: list[dict] = []
     
     phases = _group_tasks_into_phases(plan.tasks)
@@ -36,11 +44,17 @@ def execute_plan(plan: PlannerOutput, request: str) -> list[dict]:
         system_prompt = EXECUTOR_SYSTEM_PROMPT + f"\n\nYou are operating in the {phase_name.upper()} execution phase. Thoroughly execute all tasks assigned to this phase as a cohesive block."
         
         task_dicts = [{"id": t.id, "task": t.task, "purpose": t.purpose, "tool": t.tool} for t in phase_tasks]
-        user_prompt = build_executor_prompt(request, plan.goal, plan.document_type, plan.assumptions, task_dicts, results)
+        user_prompt = build_executor_prompt(request, plan.goal, plan.document_type, plan.assumptions, task_dicts, state.get_summary_text())
 
         try:
-            content = call_llm(system_prompt, user_prompt, temperature=0.5, max_tokens=4000)
+            content = call_llm(system_prompt, user_prompt, temperature=0.5, max_tokens=4000, profile="deep_analysis")
             summary = content[:150].split("\n")[0] if content else f"Completed phase: {phase_name}"
+
+            # Record summary in shared state
+            state.phase_summaries.append({
+                "task": phase_name,
+                "summary": summary
+            })
 
             # Map the single LLM phase execution result back to the individual tasks for UI tracking
             for i, task in enumerate(phase_tasks):

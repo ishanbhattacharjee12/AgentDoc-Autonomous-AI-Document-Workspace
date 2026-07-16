@@ -8,8 +8,9 @@
     <link rel="stylesheet" href="/static/styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Lucide Icons -->
+    <!-- Lucide Icons & Marked (Markdown Parser) -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/static/marked.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -29,18 +30,36 @@
                 placeholder="e.g., Create a project plan for launching an AI-powered customer support chatbot..."
             ></textarea>
 
-            <div class="options-row" style="margin-bottom: 16px; display: flex; gap: 20px; align-items: center;">
+            <!-- Development Mode Badge -->
+            <div id="dev-status-bar" style="display: none; justify-content: space-between; align-items: center; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius); padding: 10px 16px; margin-bottom: 16px; font-size: 0.88rem; color: var(--warning); flex-wrap: wrap; gap: 10px;">
+                <span style="display:flex; align-items:center; gap:6px;"><i data-lucide="terminal" style="width: 16px; height: 16px;"></i><strong>Development Mode</strong> (DEBUG=true)</span>
+                <span>Active Model: <strong id="dev-active-model" style="color:var(--text);">--</strong></span>
+                <span>Pipeline Mode: <strong id="dev-pipeline-mode" style="color:var(--text);">--</strong></span>
+                <span>Cache: <strong id="dev-cache-status" style="color:var(--text);">Disabled</strong></span>
+            </div>
+
+            <div class="options-row" style="margin-bottom: 16px; display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
                 <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                     <input type="checkbox" id="review-toggle">
                     <span style="font-size: 0.95rem; font-weight: 500;">Review Plan Before Execution</span>
                 </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="ignore-cache-toggle">
+                    <span style="font-size: 0.95rem; font-weight: 500; color: #ef5350;">Ignore Request Cache</span>
+                </label>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <label for="format-select" style="font-size: 0.95rem; font-weight: 500;">Format:</label>
-                    <select id="format-select" class="dropdown" style="padding: 6px 12px; border-radius: 4px; border: 1px solid #ccc;">
-                        <option value="docx">DOCX (Word)</option>
+                    <select id="format-select" class="dropdown">
                         <option value="pdf">PDF</option>
-                        <option value="html">HTML</option>
-                        <option value="md">Markdown</option>
+                        <option value="md">Markdown (.md)</option>
+                    </select>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label for="mode-select" style="font-size: 0.95rem; font-weight: 500;">Pipeline Mode:</label>
+                    <select id="mode-select" class="dropdown">
+                        <option value="standard">Standard Mode (Fast, Single Call)</option>
+                        <option value="advanced">Advanced Mode (Thorough, Multi-Call)</option>
+                        <option value="adaptive">Adaptive Mode (Auto-fallback on error)</option>
                     </select>
                 </div>
             </div>
@@ -74,6 +93,17 @@
                 <div class="step" id="step-generating">Document</div>
             </div>
             <p class="loading-sub" id="loading-status">Initializing...</p>
+
+            <!-- Live Streaming Document Preview -->
+            <div class="result-card" id="streaming-preview-card" style="display: none; margin-top: 24px; text-align: left; width: 100%; max-width: 800px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-color: rgba(59, 130, 246, 0.2);">
+                <div class="card-header" style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+                    <h3 class="card-title" style="font-size: 1rem; color: var(--primary);"><i data-lucide="eye" style="color: var(--primary);"></i> Live Document Generation Stream</h3>
+                    <span style="font-size: 0.75rem; background: rgba(59, 130, 246, 0.1); color: var(--primary); padding: 3px 8px; border-radius: 9999px; font-weight: 500; display: flex; align-items: center; gap: 4px;">
+                        <span style="width: 6px; height: 6px; background: var(--primary); border-radius: 50%; display: inline-block; animation: cursorBlink 1s infinite;"></span> Streaming
+                    </span>
+                </div>
+                <div id="streaming-preview-container" style="max-height: 380px; overflow-y: auto; padding: 4px 8px 12px 8px; font-size: 0.92rem; line-height: 1.6; color: var(--text-muted);"></div>
+            </div>
         </section>
 
         <!-- Review Section -->
@@ -96,6 +126,20 @@
 
         <!-- Results Section -->
         <section class="results-section hidden" id="results-section">
+            
+            <!-- Cache Loaded Badge -->
+            <div id="cache-badge-container" style="display: none; margin-bottom: 20px; padding: 12px 16px; background: rgba(76, 175, 80, 0.08); border: 1px solid rgba(76, 175, 80, 0.3); border-radius: var(--radius); align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 0.9rem;">
+                <span style="color: #4caf50; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i> ✓ Loaded from Cache
+                </span>
+                <span style="color: var(--text-muted);">
+                    Timestamp: <strong id="cache-badge-timestamp" style="color: var(--text);">--</strong> 
+                    (<span id="cache-badge-age">--</span> ago)
+                </span>
+                <span id="cache-badge-key-wrapper" style="font-family: monospace; font-size: 0.8rem; background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 4px; color: var(--text-muted);">
+                    Key: <span id="cache-badge-key">--</span>
+                </span>
+            </div>
             
             <!-- Metrics Summary -->
             <div class="metrics-container" id="metrics-container">
@@ -126,13 +170,73 @@
                 </div>
             </div>
 
+            <!-- Explainability Timing Dashboard -->
+            <div class="result-card" id="explainability-card">
+                <div class="card-header">
+                    <h2 class="card-title"><i data-lucide="bar-chart-2"></i> Pipeline Explainability Dashboard</h2>
+                </div>
+                <div class="card-body">
+                    <div class="explainability-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 24px;">
+                        <div class="explain-item">
+                            <div class="explain-label">Document Type Detected</div>
+                            <div class="explain-value" id="explain-doc-type">--</div>
+                        </div>
+                        <div class="explain-item">
+                            <div class="explain-label">Selected Template</div>
+                            <div class="explain-value" id="explain-template">--</div>
+                        </div>
+                        <div class="explain-item" style="grid-column: span 2;">
+                            <div class="explain-label">Why this template was selected</div>
+                            <div class="explain-value" id="explain-why-selected" style="font-size: 0.9rem; line-height: 1.5; color: var(--text-muted);">--</div>
+                        </div>
+                        <div class="explain-item">
+                            <div class="explain-label">Confidence Rating</div>
+                            <div class="explain-value" id="explain-confidence">--</div>
+                        </div>
+                        <div class="explain-item">
+                            <div class="explain-label">Estimated Complexity</div>
+                            <div class="explain-value" id="explain-complexity">--</div>
+                        </div>
+                        <div class="explain-item">
+                            <div class="explain-label">Estimated Reading Time</div>
+                            <div class="explain-value" id="explain-reading-time">--</div>
+                        </div>
+                        <div class="explain-item">
+                            <div class="explain-label">Implementation Effort</div>
+                            <div class="explain-value" id="explain-effort">--</div>
+                        </div>
+                    </div>
+
+                    <div class="explain-item" style="margin-bottom: 24px; padding: 16px; background: var(--surface-alt); border-radius: 8px; border-left: 3px solid var(--accent);">
+                         <div class="explain-label" style="margin-bottom: 6px; font-weight: 600; color: var(--text);">Execution Strategy</div>
+                         <div class="explain-value" id="explain-strategy" style="font-size: 0.95rem; line-height: 1.6; color: var(--text-muted); white-space: pre-line;">--</div>
+                    </div>
+
+                    <div class="explain-item" id="explain-reflection-container" style="margin-bottom: 24px; padding: 16px; background: rgba(52, 211, 153, 0.05); border-radius: 8px; border-left: 3px solid var(--success); display: none;">
+                         <div class="explain-label" style="margin-bottom: 6px; font-weight: 600; color: var(--success);">Quality Validation Status</div>
+                         <div class="explain-value" id="explain-reflection" style="font-size: 0.95rem; line-height: 1.6; color: var(--text-muted);">--</div>
+                    </div>
+
+                    <div style="display: flex; gap: 40px; margin-bottom: 16px; align-items: center; flex-wrap: wrap;">
+                        <div>
+                            <strong>Time-To-First-Token (TTFT):</strong>
+                            <span id="metric-ttft" style="font-weight: 600; color: var(--info); font-size: 1.1rem; margin-left: 8px;">-- s</span>
+                        </div>
+                    </div>
+                    <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--text); font-weight: 600;">Stage Timings & LLM Resource Breakdown:</h3>
+                    <div id="timings-list" style="display: flex; flex-direction: column; gap: 12px;">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+
             <!-- Goal -->
             <div class="result-card" id="goal-card">
                 <div class="card-header">
                     <h2 class="card-title"><i data-lucide="target"></i> Interpreted Goal</h2>
                 </div>
                 <p id="goal-text" class="card-body"></p>
-                <div class="badges-row">
+                <div class="badges-row" style="display: none;">
                     <span class="badge" id="doctype-badge"></span>
                     <span class="badge" id="confidence-badge" title="Planner Confidence"></span>
                     <span class="badge" id="complexity-badge" title="Estimated Complexity"></span>
@@ -163,7 +267,7 @@
                     <h2 class="card-title"><i data-lucide="activity"></i> Execution Results</h2>
                     <button class="btn-icon-only copy-btn" onclick="copyContent('execution-list')" title="Copy Execution Results"><i data-lucide="copy"></i></button>
                 </div>
-                <div id="execution-list"></div>
+                <div id="execution-list" style="display: flex; flex-direction: column; gap: 16px;"></div>
             </div>
 
             <!-- Reflection -->
@@ -171,17 +275,68 @@
                 <div class="card-header">
                     <h2 class="card-title"><i data-lucide="search"></i> Quality Assessment</h2>
                 </div>
-                <div id="reflection-grade-badge" class="badge"></div>
-                <div id="reflection-content" style="margin-top: 12px;"></div>
+                <div id="reflection-content"></div>
             </div>
 
-            <!-- Summary -->
+            <!-- Final Summary (Execution Report) -->
             <div class="result-card" id="summary-card">
                 <div class="card-header">
-                    <h2 class="card-title"><i data-lucide="check-circle"></i> Final Summary</h2>
-                    <button class="btn-icon-only copy-btn" onclick="copyContent('summary-text')" title="Copy Summary"><i data-lucide="copy"></i></button>
+                    <h2 class="card-title"><i data-lucide="file-check"></i> Document Execution Report</h2>
+                    <button class="btn-icon-only copy-btn" onclick="copyContent('summary-report-details')" title="Copy Report"><i data-lucide="copy"></i></button>
                 </div>
-                <p id="summary-text" class="card-body"></p>
+                <div id="summary-report-details" style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px;">
+                    <!-- Rendered dynamically -->
+                </div>
+            </div>
+
+            <!-- Technical Details (Collapsible) -->
+            <div class="result-card" id="tech-details-card">
+                <div class="card-header" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="toggleTechDetails()">
+                    <h2 class="card-title" style="margin: 0;"><i data-lucide="settings"></i> Technical Details</h2>
+                    <span id="tech-details-icon" style="color: var(--text-muted); display: flex; align-items: center;"><i data-lucide="chevron-down"></i></span>
+                </div>
+                <div id="tech-details-content" class="hidden" style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                        <tbody>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 10px 0; color: var(--text); font-weight: 500;">Provider</td>
+                                <td style="padding: 10px 0; text-align: right; color: var(--text-muted);" id="tech-provider">--</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 10px 0; color: var(--text); font-weight: 500;">Active Model</td>
+                                <td style="padding: 10px 0; text-align: right; color: var(--text-muted); font-family: monospace;" id="tech-model">--</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 10px 0; color: var(--text); font-weight: 500;">Execution Mode</td>
+                                <td style="padding: 10px 0; text-align: right; color: var(--text-muted);" id="tech-mode">--</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 10px 0; color: var(--text); font-weight: 500;">Tokens Used</td>
+                                <td style="padding: 10px 0; text-align: right; color: var(--text-muted);" id="tech-tokens">--</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 10px 0; color: var(--text); font-weight: 500;">Time-To-First-Token (TTFT)</td>
+                                <td style="padding: 10px 0; text-align: right; color: var(--text-muted);" id="tech-ttft">--</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 10px 0; color: var(--text); font-weight: 500;">Total Time</td>
+                                <td style="padding: 10px 0; text-align: right; color: var(--text-muted);" id="tech-time">--</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 10px 0; color: var(--text); font-weight: 500;">LLM Call Count</td>
+                                <td style="padding: 10px 0; text-align: right; color: var(--text-muted);" id="tech-calls">--</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 10px 0; color: var(--text); font-weight: 500;">Reflection Status</td>
+                                <td style="padding: 10px 0; text-align: right; color: var(--text-muted);" id="tech-reflection">--</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid var(--border); display: none;" id="tech-budget-warnings-row">
+                                <td style="padding: 10px 0; color: #f97316; font-weight: 600;">Performance Budget Alerts</td>
+                                <td style="padding: 10px 0; text-align: right; color: #f97316; font-weight: 500; font-size: 0.95rem; white-space: pre-line;" id="tech-budget-warnings">--</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Preview -->
@@ -189,13 +344,13 @@
                 <div class="card-header">
                     <h2 class="card-title"><i data-lucide="eye"></i> Document Preview</h2>
                 </div>
-                <div id="preview-container" style="border: 1px solid #eee; border-radius: 6px; padding: 10px; background: #fafafa; min-height: 200px; max-height: 500px; overflow-y: auto;">
+                <div id="preview-container" style="border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; background: var(--bg); min-height: 200px; max-height: 500px; overflow-y: auto;">
                 </div>
             </div>
 
             <!-- Document Download -->
             <div class="result-card download-card" id="download-card">
-                <h2 class="card-title">Generated Document</h2>
+                <h2 class="card-title" style="margin-bottom: 16px; justify-content: center;"><i data-lucide="check-circle" style="color: var(--success);"></i> Generated Document Ready</h2>
                 <a id="download-link" class="btn btn-download" href="#" download>
                     <i data-lucide="download" style="margin-right: 8px;"></i> Download DOCX
                 </a>

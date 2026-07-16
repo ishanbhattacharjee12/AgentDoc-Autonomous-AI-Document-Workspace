@@ -5,11 +5,13 @@ import {
   saveHistoryEntry,
   deleteHistoryEntry,
   clearAllHistory,
+  updateHistoryEntry,
+  duplicateHistoryEntry,
 } from '@/services/historyDB'
 
 /**
  * React hook for managing document history state backed by IndexedDB.
- * Provides loading, saving, deleting, and clearing operations.
+ * Provides loading, saving, updating, duplicating, deleting, and clearing operations.
  */
 export function useHistory() {
   const [entries, setEntries] = useState<HistoryEntry[]>([])
@@ -55,6 +57,32 @@ export function useHistory() {
     []
   )
 
+  const updateEntry = useCallback(
+    async (id: number, updates: Partial<HistoryEntry>) => {
+      try {
+        await updateHistoryEntry(id, updates)
+        setEntries((prev) =>
+          prev.map((e) => (e.id === id ? { ...e, ...updates } : e))
+        )
+      } catch (err) {
+        console.error('Failed to update history entry:', err)
+      }
+    },
+    []
+  )
+
+  const duplicateEntry = useCallback(
+    async (id: number) => {
+      try {
+        await duplicateHistoryEntry(id)
+        await refresh()
+      } catch (err) {
+        console.error('Failed to duplicate history entry:', err)
+      }
+    },
+    [refresh]
+  )
+
   const clearAll = useCallback(async () => {
     try {
       await clearAllHistory()
@@ -69,6 +97,8 @@ export function useHistory() {
     isLoading,
     addEntry,
     removeEntry,
+    updateEntry,
+    duplicateEntry,
     clearAll,
     refresh,
   }

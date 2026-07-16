@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -27,6 +28,9 @@ import { saveHistoryEntry } from '@/services/historyDB'
 type PageStatus = 'idle' | 'planning' | 'executing' | 'synthesizing' | 'reflecting' | 'generating' | 'reviewing' | 'completed' | 'error'
 
 export const GeneratePage: React.FC = () => {
+  const location = useLocation()
+  const navigate = useNavigate()
+
   // Read default workspace settings from localStorage
   const getStoredSettings = () => {
     try {
@@ -38,13 +42,24 @@ export const GeneratePage: React.FC = () => {
     return null
   }
 
+  // Seed states from router template navigation if present
+  const routerPrompt = (location.state as any)?.prompt || ''
+  const routerMode = (location.state as any)?.mode || ''
+
   // Form input states
-  const [requestText, setRequestText] = useState('')
+  const [requestText, setRequestText] = useState(routerPrompt)
   const [format, setFormat] = useState<DocumentFormat>(() => getStoredSettings()?.format || 'pdf')
-  const [mode, setMode] = useState<ExecutionMode>(() => getStoredSettings()?.mode || 'standard')
+  const [mode, setMode] = useState<ExecutionMode>(() => routerMode || getStoredSettings()?.mode || 'standard')
   const [requireReview, setRequireReview] = useState(() => getStoredSettings()?.requireReview ?? false)
   const [ignoreCache, setIgnoreCache] = useState(() => getStoredSettings()?.ignoreCache ?? false)
   const [showAdvanced, setShowAdvanced] = useState(false)
+
+  // Clear location state on mount to prevent refresh re-populating prompt
+  useEffect(() => {
+    if (location.state) {
+      navigate(location.pathname, { replace: true, state: null })
+    }
+  }, [location, navigate])
 
   // Pipeline execution states
   const [status, setStatus] = useState<PageStatus>('idle')
