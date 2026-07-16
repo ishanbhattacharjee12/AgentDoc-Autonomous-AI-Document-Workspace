@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { LoadingState } from '@/components/ui/loading-state'
 import { ErrorState } from '@/components/ui/error-state'
 import type { ErrorType } from '@/components/ui/error-state'
 import { SectionHeader } from '@/components/ui/section-header'
@@ -11,7 +10,13 @@ import { Badge } from '@/components/ui/badge'
 import { streamGeneration, getDocumentDownloadUrl, streamPlanExecution } from '@/services/api'
 import { useStreamingBuffer } from '@/hooks/useStreamingBuffer'
 import type { DocumentFormat, ExecutionMode, GenerationResultData, PlanReviewData } from '@/types/api'
-import { Sparkles, SlidersHorizontal, AlertTriangle, ChevronDown, ChevronUp, Clock, Download, CheckCircle, FileText, X } from 'lucide-react'
+import { Sparkles, SlidersHorizontal, AlertTriangle, ChevronDown, ChevronUp, Clock } from 'lucide-react'
+
+// Subcomponent compositions for pipeline streaming
+import { StageTracker } from '@/components/document/StageTracker'
+import { StreamingDocumentViewer } from '@/components/document/StreamingDocumentViewer'
+import { StreamToolbar } from '@/components/document/StreamToolbar'
+import { GenerationSummary } from '@/components/document/GenerationSummary'
 
 type PageStatus = 'idle' | 'planning' | 'executing' | 'synthesizing' | 'reflecting' | 'generating' | 'reviewing' | 'completed' | 'error'
 
@@ -338,42 +343,22 @@ export const GeneratePage: React.FC = () => {
 
       {/* 2. Loading & Streaming State */}
       {status !== 'idle' && status !== 'reviewing' && status !== 'completed' && status !== 'error' && (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 animate-[fadeIn_0.3s_ease-out]">
           <SectionHeader 
             title="Synthesizing Document..." 
-            subtitle={`Pipeline Step: ${stageName}`}
-            actions={
-              <Button onClick={handleCancel} variant="outline" size="sm" className="gap-2 border-destructive/20 text-destructive hover:bg-destructive/5">
-                <X className="h-4 w-4" /> Cancel Process
-              </Button>
-            }
+            subtitle="The agent is dynamically drafting and structuring your request in real time."
+            actions={<StreamToolbar onCancel={handleCancel} />}
           />
           
-          <Card className="border-border">
-            <CardContent className="pt-8 pb-8 flex flex-col items-center justify-center min-h-[220px]">
-              <LoadingState 
-                title={`Running Stage: ${stageName}`}
-                description="The agent is processing document sections, formatting tables, and compiling final drafts."
-              />
-            </CardContent>
-          </Card>
+          {/* Stage Tracker Pipeline Flow */}
+          <StageTracker currentStage={stageName} />
 
           {/* Real-time Streaming Feed Box */}
-          {displayText && (
-            <Card className="border-border">
-              <CardHeader className="border-b border-border pb-3 bg-muted/10">
-                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground tracking-wider flex items-center gap-2">
-                  <FileText className="h-3.5 w-3.5" /> Streaming Content Preview
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4 max-h-[300px] overflow-y-auto">
-                <pre className="text-xs font-mono text-foreground text-left whitespace-pre-wrap leading-relaxed">
-                  {displayText}
-                  <span className="inline-block w-1.5 h-3.5 bg-primary/70 animate-[cursorBlink_1s_infinite] ml-0.5" />
-                </pre>
-              </CardContent>
-            </Card>
-          )}
+          <StreamingDocumentViewer 
+            content={displayText} 
+            isStreaming={true} 
+            title="Streaming Content Preview"
+          />
         </div>
       )}
 
@@ -419,51 +404,43 @@ export const GeneratePage: React.FC = () => {
 
       {/* 4. Completed Success State */}
       {status === 'completed' && resultData && (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 animate-[fadeIn_0.3s_ease-out]">
           <SectionHeader 
             title="Document Completed Successfully" 
             subtitle="The pipeline successfully compiled all document modules into the output build."
-            actions={
-              <Button onClick={handleReset} variant="outline" size="sm">
-                Generate New Document
-              </Button>
-            }
+            actions={<StreamToolbar onReset={handleReset} />}
           />
 
+          {/* Summary Metrics Banner */}
+          <GenerationSummary data={resultData} />
+
           {/* Download card */}
-          <Card className="border-border">
+          <Card className="border-border shadow-sm">
             <CardContent className="pt-8 pb-8 flex flex-col items-center justify-center text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-primary mb-4">
-                <CheckCircle className="h-6 w-6" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/15 text-primary mb-4 animate-[bounce_1.5s_infinite]">
+                <Clock className="h-6 w-6" />
               </div>
               <h3 className="text-lg font-bold text-foreground mb-1">Generated Output Build</h3>
               <p className="text-xs text-muted-foreground max-w-xs mb-6">
-                Your report file is ready to download.
+                Your report document has been generated and is ready to download.
               </p>
               
               <a 
                 href={getDocumentDownloadUrl(resultData.document_filename)}
                 download
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-11 px-8 gap-2"
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/95 h-11 px-8 gap-2"
               >
-                <Download className="h-4 w-4" /> Download {format.toUpperCase()} Document
+                <Sparkles className="h-4 w-4" /> Download {format.toUpperCase()} Document
               </a>
             </CardContent>
           </Card>
 
-          {/* Summary Preview */}
-          <Card className="border-border">
-            <CardHeader className="border-b border-border pb-3 bg-muted/10">
-              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground tracking-wider flex items-center gap-2">
-                <FileText className="h-3.5 w-3.5" /> Output Content Preview
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 max-h-[400px] overflow-y-auto">
-              <div className="text-xs font-mono text-left whitespace-pre-wrap leading-relaxed text-foreground">
-                {resultData.summary}
-              </div>
-            </CardContent>
-          </Card>
+          {/* Render parsed Markdown document */}
+          <StreamingDocumentViewer 
+            content={resultData.summary} 
+            isStreaming={false} 
+            title="Output Content Preview"
+          />
         </div>
       )}
 
