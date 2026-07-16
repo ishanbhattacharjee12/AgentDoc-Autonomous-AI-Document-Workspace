@@ -24,6 +24,7 @@ export const StageTracker: React.FC<StageTrackerProps> = ({ currentStage }) => {
     else if (normalizedStage.includes('synth')) activeIndex = 2
     else if (normalizedStage.includes('reflect')) activeIndex = 3
     else if (normalizedStage.includes('document') || normalizedStage.includes('pdf') || normalizedStage.includes('generat')) activeIndex = 4
+    else if (normalizedStage === 'completed') activeIndex = 5
 
     if (activeIndex === index) return 'active'
     if (activeIndex > index) return 'completed'

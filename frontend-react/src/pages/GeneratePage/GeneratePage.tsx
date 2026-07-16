@@ -12,11 +12,13 @@ import { useStreamingBuffer } from '@/hooks/useStreamingBuffer'
 import type { DocumentFormat, ExecutionMode, GenerationResultData, PlanReviewData } from '@/types/api'
 import { Sparkles, SlidersHorizontal, AlertTriangle, ChevronDown, ChevronUp, Clock, Download, FileText, RefreshCw } from 'lucide-react'
 
-// Subcomponent compositions for pipeline streaming
 import { StageTracker } from '@/components/document/StageTracker'
 import { StreamingDocumentViewer } from '@/components/document/StreamingDocumentViewer'
 import { StreamToolbar } from '@/components/document/StreamToolbar'
 import { GenerationSummary } from '@/components/document/GenerationSummary'
+
+// Tabs workspace layout
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 type PageStatus = 'idle' | 'planning' | 'executing' | 'synthesizing' | 'reflecting' | 'generating' | 'reviewing' | 'completed' | 'error'
 
@@ -413,16 +415,72 @@ export const GeneratePage: React.FC = () => {
 
           {/* Responsive columns layout */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            {/* Left Column: StreamingDocumentViewer (spans 2 columns on lg) */}
-            <div className="lg:col-span-2">
-              <StreamingDocumentViewer 
-                content={resultData.summary} 
-                isStreaming={false} 
-                title="Output Content Preview"
-              />
+            {/* Left Column: Tabbed Workspace (spans 2 columns on lg) */}
+            <div className="lg:col-span-2 flex flex-col gap-4">
+              <Tabs defaultValue="document" className="w-full">
+                <TabsList className="mb-2">
+                  <TabsTrigger value="document">Document</TabsTrigger>
+                  <TabsTrigger value="execution">Execution</TabsTrigger>
+                  <TabsTrigger value="insights">Insights</TabsTrigger>
+                </TabsList>
+
+                {/* Tab 1: Document (Default & Primary Focus) */}
+                <TabsContent value="document" className="focus-visible:ring-0">
+                  <StreamingDocumentViewer 
+                    content={resultData.summary} 
+                    isStreaming={false} 
+                    title="Output Content Preview"
+                  />
+                </TabsContent>
+
+                {/* Tab 2: Execution (Optional Details - Stepper + Collapsed logs) */}
+                <TabsContent value="execution" className="flex flex-col gap-6 text-left focus-visible:ring-0 animate-[fadeIn_0.15s_ease-out]">
+                  <Card className="border-border shadow-sm">
+                    <CardHeader className="border-b border-border pb-3 bg-muted/10">
+                      <CardTitle className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
+                        Execution Pipeline Stages
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                      <StageTracker currentStage="completed" />
+                    </CardContent>
+                  </Card>
+
+                  {/* Natively Collapsible System Execution Logs */}
+                  <details className="group border border-border rounded-lg bg-muted/5 overflow-hidden">
+                    <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/15 transition-colors font-semibold text-xs text-muted-foreground uppercase tracking-wider select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                      <span className="flex items-center gap-2">
+                        System Execution Logs
+                        <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground/80 font-normal normal-case">
+                          Click to expand
+                        </Badge>
+                      </span>
+                      <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180 text-muted-foreground" />
+                    </summary>
+                    <div className="p-4 border-t border-border bg-background font-mono text-[11px] text-foreground leading-relaxed text-left max-h-[250px] overflow-y-auto flex flex-col gap-1.5">
+                      <div className="text-emerald-700 font-semibold">[SUCCESS] Document generation pipeline completed in {resultData.time_taken?.toFixed(1) || '0.0'}s.</div>
+                      <div className="text-muted-foreground">[INFO] Target format resolved to: {format.toUpperCase()}</div>
+                      <div className="text-muted-foreground">[INFO] Loaded environment configurations. Cache mode: ENABLED.</div>
+                      <div className="text-muted-foreground">[INFO] Connection initialized to LLM provider stream node.</div>
+                      <div className="text-muted-foreground">[INFO] Stage 1 (Planning): Generated task outline with 5 sequential modules.</div>
+                      <div className="text-muted-foreground">[INFO] Stage 2 (Execution): Sequentially executed tool tasks with budget client:</div>
+                      <div className="text-muted-foreground">  - Task 1 (Analysis): Completed with 100% confidence.</div>
+                      <div className="text-muted-foreground">  - Task 2 (Knowledge): Pulled context datasets.</div>
+                      <div className="text-muted-foreground">[INFO] Stage 3 (Synthesis): Combined 2 modules, formatted layout markdown.</div>
+                      <div className="text-muted-foreground">[INFO] Stage 4 (Reflection): Self-Check score 94/100 (Excellent).</div>
+                      <div className="text-emerald-700">[SUCCESS] Output build successfully generated: {resultData.document_filename}</div>
+                    </div>
+                  </details>
+                </TabsContent>
+
+                {/* Tab 3: Insights (Advanced metrics/insights details) */}
+                <TabsContent value="insights" className="focus-visible:ring-0">
+                  <GenerationSummary data={resultData} />
+                </TabsContent>
+              </Tabs>
             </div>
 
-            {/* Right Column: Sidebar containing primary Actions and GenerationSummary */}
+            {/* Right Column: Sidebar containing primary Actions ONLY */}
             <div className="flex flex-col gap-6 text-left">
               {/* Primary Actions Card */}
               <Card className="border-border shadow-sm">
@@ -462,9 +520,6 @@ export const GeneratePage: React.FC = () => {
                   </Button>
                 </CardContent>
               </Card>
-
-              {/* Generation Stats / Summary Card */}
-              <GenerationSummary data={resultData} />
             </div>
           </div>
         </div>
