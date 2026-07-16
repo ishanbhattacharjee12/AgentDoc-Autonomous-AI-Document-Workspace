@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { streamGeneration, getDocumentDownloadUrl, streamPlanExecution } from '@/services/api'
 import { useStreamingBuffer } from '@/hooks/useStreamingBuffer'
 import type { DocumentFormat, ExecutionMode, GenerationResultData, PlanReviewData } from '@/types/api'
-import { Sparkles, SlidersHorizontal, AlertTriangle, ChevronDown, ChevronUp, Clock } from 'lucide-react'
+import { Sparkles, SlidersHorizontal, AlertTriangle, ChevronDown, ChevronUp, Clock, Download, FileText, RefreshCw } from 'lucide-react'
 
 // Subcomponent compositions for pipeline streaming
 import { StageTracker } from '@/components/document/StageTracker'
@@ -411,36 +411,62 @@ export const GeneratePage: React.FC = () => {
             actions={<StreamToolbar onReset={handleReset} />}
           />
 
-          {/* Summary Metrics Banner */}
-          <GenerationSummary data={resultData} />
+          {/* Responsive columns layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            {/* Left Column: StreamingDocumentViewer (spans 2 columns on lg) */}
+            <div className="lg:col-span-2">
+              <StreamingDocumentViewer 
+                content={resultData.summary} 
+                isStreaming={false} 
+                title="Output Content Preview"
+              />
+            </div>
 
-          {/* Download card */}
-          <Card className="border-border shadow-sm">
-            <CardContent className="pt-8 pb-8 flex flex-col items-center justify-center text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/15 text-primary mb-4 animate-[bounce_1.5s_infinite]">
-                <Clock className="h-6 w-6" />
-              </div>
-              <h3 className="text-lg font-bold text-foreground mb-1">Generated Output Build</h3>
-              <p className="text-xs text-muted-foreground max-w-xs mb-6">
-                Your report document has been generated and is ready to download.
-              </p>
-              
-              <a 
-                href={getDocumentDownloadUrl(resultData.document_filename)}
-                download
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/95 h-11 px-8 gap-2"
-              >
-                <Sparkles className="h-4 w-4" /> Download {format.toUpperCase()} Document
-              </a>
-            </CardContent>
-          </Card>
+            {/* Right Column: Sidebar containing primary Actions and GenerationSummary */}
+            <div className="flex flex-col gap-6 text-left">
+              {/* Primary Actions Card */}
+              <Card className="border-border shadow-sm">
+                <CardHeader className="border-b border-border pb-3 bg-muted/10">
+                  <CardTitle className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
+                    Document Actions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6 flex flex-col gap-3">
+                  {/* Download primary button */}
+                  <a 
+                    href={getDocumentDownloadUrl(resultData.document_filename)}
+                    download
+                    className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/95 h-11 w-full gap-2 font-semibold"
+                  >
+                    <Download className="h-4 w-4" /> Download {format.toUpperCase()} Document
+                  </a>
 
-          {/* Render parsed Markdown document */}
-          <StreamingDocumentViewer 
-            content={resultData.summary} 
-            isStreaming={false} 
-            title="Output Content Preview"
-          />
+                  {/* Client-side markdown export if format is not already markdown */}
+                  {format !== 'md' && (
+                    <a 
+                      href={`data:text/markdown;charset=utf-8,${encodeURIComponent(resultData.summary)}`}
+                      download={`${resultData.document_filename.split('.')[0] || 'agentdoc_export'}.md`}
+                      className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-transparent shadow-sm hover:bg-accent/5 hover:text-accent-foreground h-11 w-full gap-2 text-foreground font-semibold"
+                    >
+                      <FileText className="h-4 w-4 text-muted-foreground" /> Download Markdown (.md)
+                    </a>
+                  )}
+
+                  {/* Reset/Generate Another button */}
+                  <Button 
+                    onClick={handleReset} 
+                    variant="outline" 
+                    className="w-full h-11 gap-2 border-border text-muted-foreground hover:bg-muted/5 mt-1 font-semibold"
+                  >
+                    <RefreshCw className="h-4 w-4" /> Generate New Document
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Generation Stats / Summary Card */}
+              <GenerationSummary data={resultData} />
+            </div>
+          </div>
         </div>
       )}
 
