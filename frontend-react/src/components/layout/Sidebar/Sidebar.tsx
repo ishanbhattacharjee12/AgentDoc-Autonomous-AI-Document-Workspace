@@ -72,7 +72,7 @@ export const Sidebar: React.FC = () => {
                 to={item.to}
                 onClick={() => setIsOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 group border border-transparent ${
+                  `flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 group border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                     isActive
                       ? 'bg-accent/10 border-accent/20 text-accent-foreground font-medium'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
