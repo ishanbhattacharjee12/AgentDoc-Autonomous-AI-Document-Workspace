@@ -24,6 +24,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { PlanReviewEditor } from '@/components/document/PlanReviewEditor'
 
 import { saveHistoryEntry } from '@/services/historyDB'
+import { useCommandPalette } from '@/components/layout/CommandPalette/CommandPaletteContext'
 
 type PageStatus = 'idle' | 'planning' | 'executing' | 'synthesizing' | 'reflecting' | 'generating' | 'reviewing' | 'completed' | 'error'
 
@@ -77,6 +78,91 @@ export const GeneratePage: React.FC = () => {
 
   // Throttled token buffer hook
   const { displayText, appendToken, resetText } = useStreamingBuffer()
+  const { registerAction, unregisterAction } = useCommandPalette()
+  const promptRef = useRef<HTMLTextAreaElement>(null)
+
+  // Mutable ref of contextual handlers updated on every render
+  const actionsRef = useRef({
+    generate: () => {},
+    resume: () => {},
+    newDocument: () => {},
+    focusPrompt: () => {},
+    downloadPdf: () => {},
+    downloadMd: () => {},
+  })
+
+  useEffect(() => {
+    actionsRef.current = {
+      generate: () => {
+        if (status === 'idle' && requestText.trim()) {
+          const mockEvent = { preventDefault: () => {} } as React.FormEvent
+          handleRunAgent(mockEvent)
+        }
+      },
+      resume: () => {
+        if (status === 'reviewing') {
+          handleResumeReview()
+        }
+      },
+      newDocument: () => {
+        if (status === 'completed' || status === 'error' || status === 'idle') {
+          handleReset()
+        } else {
+          if (window.confirm('Active document generation in progress. Start new document anyway?')) {
+            handleReset()
+          }
+        }
+      },
+      focusPrompt: () => {
+        if (status === 'idle') {
+          promptRef.current?.focus()
+        }
+      },
+      downloadPdf: () => {
+        if (status === 'completed' && resultData?.document_filename) {
+          window.location.href = getDocumentDownloadUrl(resultData.document_filename)
+        }
+      },
+      downloadMd: () => {
+        if (status === 'completed' && resultData?.document_filename) {
+          const baseFilename = resultData.document_filename.replace(/\.(pdf|docx)$/, '')
+          window.location.href = getDocumentDownloadUrl(`${baseFilename}.md`)
+        }
+      }
+    }
+  })
+
+  // Register palette command actions conditionally based on page status
+  useEffect(() => {
+    // Actions always available on this page
+    registerAction('new-document', () => actionsRef.current.newDocument())
+
+    // Actions available only in idle state
+    if (status === 'idle') {
+      registerAction('generate', () => actionsRef.current.generate())
+      registerAction('focus-prompt', () => actionsRef.current.focusPrompt())
+    }
+
+    // Actions available only in reviewing state
+    if (status === 'reviewing') {
+      registerAction('resume', () => actionsRef.current.resume())
+    }
+
+    // Actions available only in completed state
+    if (status === 'completed') {
+      registerAction('download-pdf', () => actionsRef.current.downloadPdf())
+      registerAction('download-md', () => actionsRef.current.downloadMd())
+    }
+
+    return () => {
+      unregisterAction('new-document')
+      unregisterAction('generate')
+      unregisterAction('focus-prompt')
+      unregisterAction('resume')
+      unregisterAction('download-pdf')
+      unregisterAction('download-md')
+    }
+  }, [registerAction, unregisterAction, status])
 
   const demo1 =
     'Create a project plan for launching an AI-powered customer support chatbot for a mid-sized e-commerce company. Include objectives, scope, phases, timeline, team responsibilities, risks, success metrics, and next steps.'
@@ -286,6 +372,7 @@ export const GeneratePage: React.FC = () => {
                     Document Request Prompt
                   </label>
                   <textarea
+                    ref={promptRef}
                     id="prompt-input"
                     rows={5}
                     className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 min-h-[120px] resize-y"
