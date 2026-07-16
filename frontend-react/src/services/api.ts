@@ -102,12 +102,46 @@ export async function streamPlanExecution(
   signal: AbortSignal
 ): Promise<void> {
   try {
+    const payload = {
+      request: reviewData.request || '',
+      format: reviewData.format || 'docx',
+      mode: reviewData.mode || 'standard',
+      ignore_cache: false,
+      planner_output: {
+        goal: reviewData.goal || '',
+        document_type: reviewData.document_type || '',
+        confidence: reviewData.confidence || 'Medium',
+        confidence_reason: reviewData.confidence_reason || '',
+        complexity: reviewData.complexity || 'Moderate',
+        complexity_reason: reviewData.complexity_reason || '',
+        reading_time: reviewData.reading_time || '',
+        implementation_effort: reviewData.implementation_effort || '',
+        planning_summary: reviewData.planning_summary || '',
+        assumptions: reviewData.assumptions || [],
+        tasks: (reviewData.plan || []).map((t, index) => {
+          const originalId = typeof t.id === 'number' ? t.id : parseInt(String(t.id), 10)
+          const idVal = !isNaN(originalId) ? originalId : index + 1
+          return {
+            id: idVal,
+            task: t.task || '',
+            purpose: (t as any).purpose || t.task || 'Sequential task step execution.',
+            tool: (t as any).tool || 'analysis',
+            status: t.status || 'pending',
+            depends_on: Array.isArray(t.depends_on)
+              ? t.depends_on.map((d: any) => typeof d === 'number' ? d : parseInt(String(d), 10)).filter((d: number) => !isNaN(d))
+              : [],
+            summary: '',
+          }
+        }),
+      },
+    }
+
     const res = await fetch(`${API_BASE}/agent/execute/stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(reviewData),
+      body: JSON.stringify(payload),
       signal,
     })
 

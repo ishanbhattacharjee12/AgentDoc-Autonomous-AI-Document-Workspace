@@ -9,8 +9,8 @@ import { SectionHeader } from '@/components/ui/section-header'
 import { Badge } from '@/components/ui/badge'
 import { streamGeneration, getDocumentDownloadUrl, streamPlanExecution } from '@/services/api'
 import { useStreamingBuffer } from '@/hooks/useStreamingBuffer'
-import type { DocumentFormat, ExecutionMode, GenerationResultData, PlanReviewData } from '@/types/api'
-import { Sparkles, SlidersHorizontal, AlertTriangle, ChevronDown, ChevronUp, Clock, Download, FileText, RefreshCw } from 'lucide-react'
+import type { DocumentFormat, ExecutionMode, GenerationResultData, PlanReviewData, TaskItem } from '@/types/api'
+import { Sparkles, SlidersHorizontal, AlertTriangle, ChevronDown, ChevronUp, Download, FileText, RefreshCw } from 'lucide-react'
 
 import { StageTracker } from '@/components/document/StageTracker'
 import { StreamingDocumentViewer } from '@/components/document/StreamingDocumentViewer'
@@ -19,6 +19,7 @@ import { GenerationSummary } from '@/components/document/GenerationSummary'
 
 // Tabs workspace layout
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { PlanReviewEditor } from '@/components/document/PlanReviewEditor'
 
 type PageStatus = 'idle' | 'planning' | 'executing' | 'synthesizing' | 'reflecting' | 'generating' | 'reviewing' | 'completed' | 'error'
 
@@ -107,13 +108,29 @@ export const GeneratePage: React.FC = () => {
       },
       onReview: (data: PlanReviewData) => {
         cleanupStreams()
-        setReviewPlanData(data)
+        setReviewPlanData({
+          ...data,
+          request: requestText,
+          format,
+          mode,
+        })
         setStatus('reviewing')
       },
-      onResult: (data: GenerationResultData) => {
+      onResult: (data: any) => {
         cleanupStreams()
-        setResultData(data)
-        setStatus('completed')
+        if (data && data.status === 'requires_review') {
+          // Enrich with form context that the backend doesn't echo back
+          setReviewPlanData({
+            ...data,
+            request: requestText,
+            format,
+            mode,
+          })
+          setStatus('reviewing')
+        } else {
+          setResultData(data)
+          setStatus('completed')
+        }
       },
       onError: (err: string) => {
         cleanupStreams()
@@ -180,6 +197,14 @@ export const GeneratePage: React.FC = () => {
     }
 
     streamPlanExecution(reviewPlanData, callbacks, controller.signal)
+  }
+
+  const handleUpdatePlan = (updatedPlan: TaskItem[]) => {
+    if (!reviewPlanData) return
+    setReviewPlanData({
+      ...reviewPlanData,
+      plan: updatedPlan,
+    })
   }
 
   return (
@@ -364,43 +389,24 @@ export const GeneratePage: React.FC = () => {
         </div>
       )}
 
-      {/* 3. Review Plan State (Milestone 1.4d placeholder) */}
+      {/* 3. Review Plan State */}
       {status === 'reviewing' && reviewPlanData && (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 animate-[fadeIn_0.3s_ease-out]">
           <SectionHeader 
             title="Review Generation Plan" 
             subtitle="The planner agent has outlined the synthesis path. Review the structure before execution."
             actions={
-              <Button onClick={handleCancel} variant="outline" size="sm" className="gap-2 text-muted-foreground">
+              <Button onClick={handleCancel} variant="outline" size="sm" className="gap-2 text-muted-foreground cursor-pointer">
                 Cancel
               </Button>
             }
           />
 
-          <Card className="border-border">
-            <CardHeader className="border-b border-border pb-4">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" /> Synthesis Sequence
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6 flex flex-col gap-4">
-              {reviewPlanData.plan.map((item, idx) => (
-                <div key={item.id || idx} className="flex items-center gap-3 p-3 border border-border rounded-lg bg-muted/20">
-                  <Badge variant="outline" className="border-primary/20 text-primary">Task {idx + 1}</Badge>
-                  <span className="text-xs font-semibold text-foreground text-left">{item.task}</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          <div className="flex justify-end mt-2">
-            <Button
-              onClick={handleResumeReview}
-              className="bg-secondary text-secondary-foreground font-semibold px-8 py-6 h-auto text-sm gap-2"
-            >
-              Resume Execution Stream
-            </Button>
-          </div>
+          <PlanReviewEditor 
+            plan={reviewPlanData.plan}
+            onChange={handleUpdatePlan}
+            onResume={handleResumeReview}
+          />
         </div>
       )}
 

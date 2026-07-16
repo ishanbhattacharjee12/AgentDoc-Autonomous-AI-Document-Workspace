@@ -23,6 +23,17 @@ export interface PlanReviewData {
   request: string
   format: DocumentFormat
   mode: ExecutionMode
+  // Fields from the backend AgentResponse (status=requires_review)
+  goal?: string
+  document_type?: string
+  confidence?: string
+  confidence_reason?: string
+  complexity?: string
+  complexity_reason?: string
+  reading_time?: string
+  implementation_effort?: string
+  planning_summary?: string
+  assumptions?: string[]
 }
 
 export interface GenerationResultData {
