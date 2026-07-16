@@ -21,15 +21,28 @@ import { GenerationSummary } from '@/components/document/GenerationSummary'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { PlanReviewEditor } from '@/components/document/PlanReviewEditor'
 
+import { saveHistoryEntry } from '@/services/historyDB'
+
 type PageStatus = 'idle' | 'planning' | 'executing' | 'synthesizing' | 'reflecting' | 'generating' | 'reviewing' | 'completed' | 'error'
 
 export const GeneratePage: React.FC = () => {
+  // Read default workspace settings from localStorage
+  const getStoredSettings = () => {
+    try {
+      const stored = localStorage.getItem('agentdoc_user_settings')
+      if (stored) return JSON.parse(stored)
+    } catch (e) {
+      console.error(e)
+    }
+    return null
+  }
+
   // Form input states
   const [requestText, setRequestText] = useState('')
-  const [format, setFormat] = useState<DocumentFormat>('pdf')
-  const [mode, setMode] = useState<ExecutionMode>('standard')
-  const [requireReview, setRequireReview] = useState(false)
-  const [ignoreCache, setIgnoreCache] = useState(false)
+  const [format, setFormat] = useState<DocumentFormat>(() => getStoredSettings()?.format || 'pdf')
+  const [mode, setMode] = useState<ExecutionMode>(() => getStoredSettings()?.mode || 'standard')
+  const [requireReview, setRequireReview] = useState(() => getStoredSettings()?.requireReview ?? false)
+  const [ignoreCache, setIgnoreCache] = useState(() => getStoredSettings()?.ignoreCache ?? false)
   const [showAdvanced, setShowAdvanced] = useState(false)
 
   // Pipeline execution states
@@ -79,6 +92,13 @@ export const GeneratePage: React.FC = () => {
     resetText()
     setResultData(null)
     setReviewPlanData(null)
+    
+    // Reload local settings defaults
+    const defaults = getStoredSettings()
+    setFormat(defaults?.format || 'pdf')
+    setMode(defaults?.mode || 'standard')
+    setRequireReview(defaults?.requireReview ?? false)
+    setIgnoreCache(defaults?.ignoreCache ?? false)
   }
 
   const handleRunAgent = (e: React.FormEvent) => {
@@ -130,6 +150,17 @@ export const GeneratePage: React.FC = () => {
         } else {
           setResultData(data)
           setStatus('completed')
+          saveHistoryEntry({
+            prompt: requestText,
+            summary: data.summary || '',
+            document_filename: data.document_filename,
+            format,
+            mode,
+            created_at: new Date().toISOString(),
+            time_taken: data.time_taken,
+            active_model: data.active_model,
+            llm_call_count: data.llm_call_count,
+          }).catch((err) => console.error('Failed to save to IndexedDB history:', err))
         }
       },
       onError: (err: string) => {
@@ -187,6 +218,19 @@ export const GeneratePage: React.FC = () => {
         cleanupStreams()
         setResultData(data)
         setStatus('completed')
+        if (reviewPlanData) {
+          saveHistoryEntry({
+            prompt: reviewPlanData.request,
+            summary: data.summary || '',
+            document_filename: data.document_filename,
+            format: reviewPlanData.format,
+            mode: reviewPlanData.mode,
+            created_at: new Date().toISOString(),
+            time_taken: data.time_taken,
+            active_model: data.active_model,
+            llm_call_count: data.llm_call_count,
+          }).catch((err) => console.error('Failed to save to IndexedDB history:', err))
+        }
       },
       onError: (err: string) => {
         cleanupStreams()
