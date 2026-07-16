@@ -1,19 +1,26 @@
 # AgentDoc – Autonomous Document Intelligence Platform
 
-**AgentDoc – Autonomous Document Intelligence Platform** is a complete autonomous AI document-generation agent for a Python AI Engineer assignment. It accepts a natural-language business request, understands the goal, creates its own dynamic task plan, executes the plan using controlled tools, synthesizes the results, performs a reflection/self-check, revises once if necessary, and generates a polished Microsoft Word `.docx` document.
+**AgentDoc – Autonomous Document Intelligence Platform** is a complete autonomous AI document-generation agent. It accepts a natural-language business request, understands the goal, creates its own dynamic task plan, executes the plan using controlled tools, synthesizes the results, performs a reflection/self-check, revises once if necessary, and generates a polished consulting-grade document.
 
-## Features
+This repository features the **Phase 1 Release Candidate (RC1)** representing a complete React + TypeScript + Tailwind CSS modern SPA migration of the frontend web client, fully integrated with the Python FastAPI backend.
 
-- **Autonomous Dynamic Planning**: The LLM determines the goal, document type, complexity, confidence, assumptions, and task decomposition (including tool routing) dynamically based on the input request.
-- **Human-in-the-Loop (Review Mode)**: Optionally pause the autonomous workflow after planning to edit, modify, and approve tasks before execution resumes.
-- **Controlled Tool Execution**: Maps LLM tasks to specific controlled internal tools (analysis, knowledge, requirements analysis, stakeholder analysis, compliance review, cost-benefit analysis, priority matrix).
-- **Reflection & Quality Assessment**: Evaluates the generated draft against the original request and plan, returning professional grades (Excellent, Good, Satisfactory, Needs Revision, Poor). Performs exactly one revision pass if the grade is "Needs Revision" or "Poor", ensuring high quality without uncontrolled loops.
-- **Multi-Format Export**: Generates professional documents from a single finalized representation. Supports `.docx`, `.pdf`, `.html`, and `.md` with consistent consultant-grade styling.
-- **Modern SPA Frontend with Live SSE**: A flagship, portfolio-quality vanilla JS frontend that connects to `/agent/stream` via Server-Sent Events (SSE). It visualizes the agent's autonomous workflow in a live stepper and timeline, displaying execution metrics (Duration, LLM Calls, Tasks, Revisions), confidence, complexity, reading time, effort, and the planning summary.
+---
 
-## Architecture
+## 🚀 Key Features
 
-The system follows a sequential orchestrated pipeline:
+*   **Autonomous Dynamic Planning**: The LLM determines the goal, document type, complexity, confidence, assumptions, and task decomposition dynamically based on the input request.
+*   **Human-in-the-Loop (Review Mode)**: Optionally pause the autonomous workflow after planning to edit, modify, and approve tasks before execution resumes.
+*   **Controlled Tool Execution**: Maps LLM tasks to specific controlled internal tools (analysis, knowledge, requirements analysis, compliance, cost-benefit, priority matrix).
+*   **Reflection & Quality Assessment**: Evaluates the generated draft against the original request and plan, returning professional grades. Performs exactly one revision pass if the grade is low, ensuring quality without infinite loops.
+*   **Vellum & Ink Design Identity**: Clean, premium document-editorial workspace aesthetic using cool paper whites (`#F6F7F3`), deep graphite-green inks (`#1E2622`), and lab-teal primary accents (`#2C6E5C`).
+*   **Real-Time SSE Streaming**: Supports server-sent events for step tracking (stepper showing active/done pipeline tasks) and token-by-token document synthesis.
+*   **High Performance Throttled Rendering**: Employs `requestAnimationFrame` token buffering to prevent browser rendering thread locks during fast LLM output streams.
+
+---
+
+## 🏗️ Architecture
+
+The document synthesis pipeline runs as follows:
 
 ```mermaid
 graph TD
@@ -24,145 +31,130 @@ graph TD
     E --> F[Draft Creation]
     F --> G{Reflection & Self-Check}
     G -- Issues Found --> H[One Revision Pass]
-    G -- Passed --> I[DOCX Generation]
+    G -- Passed --> I[DOCX/PDF/MD Generation]
     H --> I
-    I --> J[API Response & Document Download]
+    I --> J[React Client Download & Preview]
 ```
 
-### Folder Structure
+### React Client Architecture & Component Hierarchy
+The migrated frontend client uses modular components to separate state orchestration, network layer logic, and presentation:
 
 ```
-AgentDoc_Project/
-├── app/
-│   ├── main.py                # FastAPI application
-│   ├── config.py              # Environment configuration
-│   ├── models.py              # Pydantic schema validation
-│   ├── agent/                 # Core agent logic
-│   │   ├── orchestrator.py    # Main pipeline orchestrator
-│   │   ├── planner.py         # Dynamic task planner
-│   │   ├── executor.py        # Task executor and context manager
-│   │   ├── synthesizer.py     # Document draft synthesis
-│   │   └── reflector.py       # Reflection and revision logic
-│   ├── llm/
-│   │   └── client.py          # LLM API wrapper with retry logic
-│   ├── tools/
-│   │   ├── registry.py        # Tool allowlist
-│   │   ├── analysis_tool.py   # Analytical reasoning tool
-│   │   ├── knowledge_tool.py  # Domain knowledge tool
-│   │   └── document_tool.py   # DOCX generation tool
-│   ├── prompts/               # System and user prompts for LLM interactions
-│   ├── static/                # Vanilla JS frontend
-│   │   ├── index.html
-│   │   ├── styles.css
-│   │   └── app.js
-│   └── outputs/               # Generated DOCX files (git-ignored)
-├── requirements.txt
-├── .env.example
-├── .gitignore
-└── README.md
+frontend-react/src/
+├── components/
+│   ├── layout/
+│   │   ├── AppShell/AppShell.tsx   # Persisted page layout wrapper
+│   │   └── Sidebar/Sidebar.tsx     # Navigation sidebar (keyboard-accessible)
+│   ├── document/
+│   │   ├── PipelineStageBadge.tsx  # Dynamic stage status indicator
+│   │   ├── StageTracker.tsx        # Horizontal stepper illustrating active step
+│   │   ├── StreamingDocumentViewer.tsx # Markdown renderer (ReactMarkdown)
+│   │   ├── StreamToolbar.tsx       # Standard cancel/reset controls
+│   │   ├── GenerationSummary.tsx   # Vertical executive metrics summary card
+│   │   └── TypingCursor.tsx        # Blinking cursor animation block
+│   └── ui/                         # shadcn/ui custom primitives (cards, switches)
+├── hooks/
+│   └── useStreamingBuffer.ts       # requestAnimationFrame throttled rendering hook
+├── services/
+│   └── api.ts                      # Network layer (health check, GET/POST SSE streams)
+├── types/
+│   └── api.ts                      # Type-safe schemas and models
+├── App.tsx                         # Router endpoints configuration
+├── main.tsx                        # Entrypoint with BrowserRouter context
+└── index.css                       # Design tokens and tailwind utilities
 ```
 
-## Technologies
+---
 
-- **Backend**: Python 3, FastAPI, Pydantic, python-docx, python-dotenv, OpenAI SDK (openai).
-- **Frontend**: HTML5, CSS3, Vanilla JavaScript.
+## 🛠️ Technology Stack
 
-## Setup
+*   **Backend**: Python 3, FastAPI, Pydantic, python-docx, fpdf2, python-dotenv, OpenAI SDK.
+*   **Frontend**: React 19, TypeScript, Vite, React Router v7, Tailwind CSS, Lucide React, react-markdown, Base UI (headless selectors & switches).
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/ishanbhattacharjee12/AgentDoc.git
-   cd AgentDoc
-   ```
+---
 
-2. **Set up a virtual environment:**
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   ```
+## 📦 Setup & Installation
 
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Prerequisite: Set up Backend environment
 
-4. **Configure Environment Variables:**
-   Copy the example config and edit it with your real LLM API key:
+1.  **Clone the repository**:
+    ```bash
+    git clone https://github.com/ishanbhattacharjee12/AgentDoc.git
+    cd AgentDoc
+    ```
 
-   ```bash
-   cp .env.example .env
-   # Edit .env
-   LLM_PROVIDER=minimax
-   LLM_API_KEY=your_api_key_here
-   LLM_MODEL=minimax-text-01
-   LLM_BASE_URL=https://api.minimax.chat/v1
-   ```
+2.  **Initialize Python Virtual Environment**:
+    ```bash
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install -r requirements.txt
+    ```
 
-## Running the Application
+3.  **Configure Environment Variables**:
+    Create a `.env` file in the root directory:
+    ```env
+    LLM_PROVIDER=minimax
+    LLM_API_KEY=your_api_key_here
+    LLM_MODEL=minimax-text-01
+    LLM_BASE_URL=https://api.minimax.chat/v1
+    ENABLE_CACHE=true
+    USE_DEMO_MODE=true
+    ```
 
-Start the FastAPI server via Uvicorn:
+### Set up React Frontend
+
+1.  **Navigate to frontend directory**:
+    ```bash
+    cd frontend-react
+    ```
+
+2.  **Install dependencies**:
+    ```bash
+    npm install
+    ```
+
+---
+
+## 💻 Development Workflow
+
+To run the application locally during development:
+
+1.  **Start the Backend server** (from the root directory):
+    ```bash
+    source .venv/bin/activate
+    PYTHONPATH=. uvicorn app.main:app --host 127.0.0.1 --port 8000
+    ```
+
+2.  **Start the Frontend dev server** (from the `frontend-react` directory):
+    ```bash
+    npm run dev
+    ```
+    Open **[http://localhost:5173/](http://localhost:5173/)** in your browser. The Vite proxy configuration automatically forwards API calls to `http://127.0.0.1:8000`.
+
+### Build for Production
+To compile and build the React app static client:
 ```bash
-python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+npm run build
 ```
+This performs a typecheck and outputs optimized assets under `frontend-react/dist/`.
 
-The application will be accessible at:
-- **Frontend / UI**: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
-- **API Docs**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- **Health Check**: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
+---
 
-## Usage
+## 📑 Core Test Cases & Demos
 
-### Frontend Usage
-Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/) in your browser. You can enter a custom request, optionally enable "Review Plan Before Execution", choose the output format (DOCX, PDF, HTML, MD), or use the provided demo buttons.
+You can test the generation workflow instantly using the preloaded demo buttons in the UI:
 
-### API Usage
-You can run the agent pipeline via the `/agent` endpoint using `curl` or Postman.
+1.  **Standard Business Request (Chatbot Plan)**:
+    *   *Prompt*: "Create a project plan for launching an AI-powered customer support chatbot..."
+    *   *Result*: The agent recognizes the intent, forms assumptions, lists a 7-step plan, compiles details, and outputs a structured project plan with timelines, risks, and responsibilities.
+2.  **Complex Ambiguous Request (Onboarding Plan)**:
+    *   *Prompt*: "We need to improve customer onboarding because users are dropping off, but we don't know exactly where..."
+    *   *Result*: The agent identifies key missing analytics, plans investigation steps first, respects capacity boundaries, and outputs a leaders-level 90-day plan.
 
-```bash
-curl -X POST http://127.0.0.1:8000/agent \
-     -H "Content-Type: application/json" \
-     -d '{"request": "Create a project plan...", "require_review": false, "format": "pdf"}'
-```
+---
 
-Retrieve the generated document using the URL provided in the response:
-```bash
-curl -O http://127.0.0.1:8000/documents/agentdoc_project_plan_12345.pdf
-```
+## 🔒 Security & Safe Fallbacks
 
-## Required Test Cases
-
-The application includes two primary test cases that demonstrate bounded autonomy:
-
-1. **Standard Business Request**:
-   *Request*: "Create a project plan for launching an AI-powered customer support chatbot for a mid-sized e-commerce company..."
-   *Result*: The agent recognizes a project-plan intent, generates standard business assumptions, creates a 7-step plan, executes it, and generates a `.docx` project plan with phases, timelines, risks, and success metrics.
-
-2. **Complex Ambiguous Request**:
-   *Request*: "We need to improve customer onboarding because users are dropping off, but we don't know exactly where. Create a practical improvement plan that can be presented to leadership..."
-   *Result*: The agent identifies the missing information and ambiguity, decides to investigate low-effort/high-return analytics first, builds a phased 90-day plan respecting constrained engineering capacity and budget, and outputs a leadership-ready improvement plan.
-
-## Reflection and Self-Check
-
-We implemented a **Reflection/Self-Check stage** because LLM-generated documents may appear structurally complete while still missing user requirements, lacking logical flow, or containing inconsistencies.
-
-After the initial synthesis step, the Reflector evaluates the draft against the original request, the generated plan, and any explicit assumptions. If it finds missing actions, unclear priorities, or unfulfilled requests, it performs exactly **one controlled revision pass**. This improves output quality substantially while keeping latency and API usage tightly bounded (no uncontrolled loops).
-
-### Debugging Insight: Rate Limits
-
-During testing, complex multi-step generations can trigger HTTP 429 Too Many Requests errors if tasks run too quickly in parallel. The underlying LLM client catches these transient rate limit errors and applies a structured backoff-and-retry mechanism specifically for the LLM API (`openai.RateLimitError` handling), ensuring the full document can successfully generate without failing the entire pipeline.
-
-## Error Recovery & Security
-
-- **Path Traversal Protection**: The `/documents/{filename}` endpoint enforces strict checks to prevent unauthorized filesystem access (e.g., trying to read `../../.env`).
-- **Secret Safety**: The `.env` file and `app/outputs/` directory are excluded via `.gitignore`. API keys are never exposed to the frontend or logs.
-- **Graceful Fallbacks**: If the LLM generates malformed JSON for a plan, the client attempts to clean it, retries once with a repair prompt, and uses a deterministic fallback plan if it continues to fail.
-
-## Engineering Tradeoff
-
-**Autonomous Planning vs Deterministic Workflows**
-AgentDoc allows the LLM to dynamically determine document type, assumptions, task decomposition, task order, and tool mapping. Fully unconstrained autonomy would reduce predictability and debuggability. Therefore, we used **bounded autonomy**: the LLM generates the plan, but it is validated via Pydantic schemas, routed to a controlled tool allowlist, protected by safe fallback behavior, and capped at one maximum reflection/revision pass before deterministic DOCX generation.
-
-## Limitations and Future Improvements
-
-- **External Integrations**: The Knowledge Tool is currently mocked/simulated and relies solely on the LLM's parametric knowledge. In the future, this could be extended to connect to internal company wikis or use RAG (Retrieval-Augmented Generation).
-- **Scale and Durability**: Currently, the application uses an in-memory asyncio threadpool for agent execution. For production scale, it should ideally be converted to a distributed job queue (e.g., Celery) backed by Redis, with persistent storage of past generations in a database.
+*   **Secret Safety**: API keys and environment `.env` files are git-ignored. Secret keys are never exposed in uvicorn logs or client-side responses.
+*   **Path Traversal Checks**: Strict path validations protect the document download routes.
+*   **Graceful Recovery**: Malformed plans received from LLM steps are programmatically repaired using recursive prompts or deterministic fallbacks.
