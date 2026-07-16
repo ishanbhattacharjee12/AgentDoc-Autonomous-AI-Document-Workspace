@@ -1,0 +1,15 @@
+{
+  "short_name": "AgentDoc",
+  "name": "AgentDoc — Autonomous AI Document Workspace",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "start_url": ".",
+  "background_color": "#ffffff",
+  "theme_color": "#1e293b",
+  "display": "standalone"
+}
