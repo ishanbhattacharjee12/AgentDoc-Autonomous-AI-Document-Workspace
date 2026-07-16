@@ -16,6 +16,7 @@ import { StageTracker } from '@/components/document/StageTracker'
 import { StreamingDocumentViewer } from '@/components/document/StreamingDocumentViewer'
 import { StreamToolbar } from '@/components/document/StreamToolbar'
 import { GenerationSummary } from '@/components/document/GenerationSummary'
+import { InsightsPanel } from '@/components/document/InsightsPanel'
 
 // Tabs workspace layout
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -524,7 +525,8 @@ export const GeneratePage: React.FC = () => {
                 </TabsContent>
 
                 {/* Tab 3: Insights (Advanced metrics/insights details) */}
-                <TabsContent value="insights" className="focus-visible:ring-0">
+                <TabsContent value="insights" className="focus-visible:ring-0 flex flex-col gap-6">
+                  <InsightsPanel data={resultData} />
                   <GenerationSummary data={resultData} />
                 </TabsContent>
               </Tabs>

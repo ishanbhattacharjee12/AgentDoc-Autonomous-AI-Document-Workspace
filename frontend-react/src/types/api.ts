@@ -45,6 +45,27 @@ export interface GenerationResultData {
   time_taken?: number
   active_model?: string
   provider?: string
+  // Explainability & Insights fields
+  goal?: string
+  document_type?: string
+  confidence?: string
+  confidence_reason?: string
+  complexity?: string
+  complexity_reason?: string
+  reading_time?: string
+  implementation_effort?: string
+  planning_summary?: string
+  assumptions?: string[]
+  routing_outcome?: string
+  fallback_reason?: string
+  reflection?: {
+    passed: boolean
+    grade?: string
+    reason?: string
+    issues_found?: string[]
+    improvements_applied?: string[]
+    error?: string
+  }
 }
 
 export type SSEEvent =
