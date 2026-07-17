@@ -1,9 +1,158 @@
-import React, { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { Sparkles, Clock, Settings, Menu, X, FileText } from 'lucide-react'
+import { useHistory } from '@/hooks/useHistory'
+import { deriveDocumentTitle } from '@/utils/historyHelpers'
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  usage?: {
+    used: number
+    limit: number
+  }
+}
+
+interface ActiveRun {
+  prompt: string
+  format: string
+  mode: string
+  status: string
+  timestamp: string
+}
+
+function formatRelativeTime(isoString: string): string {
+  const now = Date.now()
+  const then = new Date(isoString).getTime()
+  const diffMs = now - then
+  const diffMin = Math.floor(diffMs / 60_000)
+  const diffHr = Math.floor(diffMs / 3_600_000)
+  const diffDay = Math.floor(diffMs / 86_400_000)
+
+  if (diffMin < 1) return 'Just now'
+  if (diffMin < 60) return `${diffMin}m ago`
+  if (diffHr < 24) return `${diffHr}h ago`
+  if (diffDay < 7) return `${diffDay}d ago`
+  return new Date(isoString).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({
+  usage
+}) => {
   const [isOpen, setIsOpen] = useState(false)
+  const navigate = useNavigate()
+  const { entries, isLoading } = useHistory()
+
+  const [activeRun, setActiveRun] = useState<ActiveRun | null>(() => {
+    const status = (window as any).__agentdoc_active_status
+    if (status && status !== 'idle') {
+      return {
+        prompt: (window as any).__agentdoc_active_prompt || '',
+        format: (window as any).__agentdoc_active_format || 'pdf',
+        mode: (window as any).__agentdoc_active_mode || 'standard',
+        status: status,
+        timestamp: (window as any).__agentdoc_active_timestamp || new Date().toISOString()
+      }
+    }
+    return null
+  })
+
+  useEffect(() => {
+    const handleStatusChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      if (detail && detail.status && detail.status !== 'idle') {
+        setActiveRun({
+          prompt: detail.requestText || '',
+          format: detail.format || 'pdf',
+          mode: detail.mode || 'standard',
+          status: detail.status,
+          timestamp: (window as any).__agentdoc_active_timestamp || new Date().toISOString()
+        })
+      } else {
+        setActiveRun(null)
+      }
+    }
+    
+    window.addEventListener('agentdoc-status-change', handleStatusChange)
+    return () => {
+      window.removeEventListener('agentdoc-status-change', handleStatusChange)
+    }
+  }, [])
+
+  const sortedEntries = React.useMemo(() => {
+    const dbEntries = [...entries]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    
+    if (activeRun && activeRun.status !== 'completed') {
+      const latestDbEntry = dbEntries[0]
+      if (latestDbEntry && latestDbEntry.prompt === activeRun.prompt && (Date.now() - new Date(latestDbEntry.created_at).getTime()) < 5000) {
+        return dbEntries.slice(0, 3)
+      }
+      
+      const virtualEntry = {
+        id: -1,
+        prompt: activeRun.prompt,
+        title: deriveDocumentTitle(undefined, activeRun.prompt, undefined, activeRun.mode),
+        format: activeRun.format,
+        mode: activeRun.mode,
+        created_at: activeRun.timestamp,
+        status: activeRun.status
+      }
+      return [virtualEntry, ...dbEntries].slice(0, 3)
+    }
+    
+    return dbEntries.slice(0, 3)
+  }, [entries, activeRun])
+
+  const handleNavigate = (entry: any) => {
+    if (entry.id === -1) {
+      navigate('/generate')
+    } else {
+      navigate('/history', { state: { selectedId: entry.id } })
+    }
+  }
+
+  const renderStatusBadge = (status: string) => {
+    const normalized = status.toLowerCase()
+    
+    if (normalized === 'completed' || normalized === 'success') {
+      return (
+        <span className="inline-flex items-center px-1.5 py-0.2 text-[8px] font-bold rounded-sm bg-teal-500/10 text-teal-700 dark:bg-teal-500/20 dark:text-teal-300 uppercase tracking-wide">
+          Completed
+        </span>
+      )
+    }
+    
+    if (normalized === 'reviewing' || normalized === 'needs_review') {
+      return (
+        <span className="inline-flex items-center px-1.5 py-0.2 text-[8px] font-bold rounded-sm border border-amber-500/30 text-amber-700 dark:text-amber-400 uppercase tracking-wide bg-transparent">
+          Needs Review
+        </span>
+      )
+    }
+    
+    if (normalized === 'error' || normalized === 'failed') {
+      return (
+        <span className="inline-flex items-center px-1.5 py-0.2 text-[8px] font-bold rounded-sm bg-red-500/10 text-red-700 dark:bg-red-500/20 dark:text-red-300 uppercase tracking-wide">
+          Failed
+        </span>
+      )
+    }
+    
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.2 text-[8px] font-bold rounded-sm bg-amber-500/10 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 uppercase tracking-wide">
+        <span className="h-1 w-1 rounded-full bg-amber-500 animate-pulse" />
+        Running
+      </span>
+    )
+  }
+
+  const activeUsed = usage?.used ?? entries.length ?? 8
+  const activeLimit = usage?.limit ?? 20
+
+  const firstEntry = sortedEntries[0]
+  const remainingEntries = sortedEntries.slice(1)
 
   const navItems = [
     {
@@ -105,27 +254,87 @@ export const Sidebar: React.FC = () => {
         {/* Center Whitespace Spacer */}
         <div className="flex-1" />
         
-        {/* Quick Tips reference card */}
-        <div className="mx-4 my-3 p-3 bg-muted/30 border border-border/50 rounded-lg text-left hidden md:block select-none">
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-2">
-            Quick Tips & Keys
+        {/* WORKSPACE ACTIVITY sidebar card */}
+        <div className="mx-4 my-3 p-3 bg-background border border-[#E3E5DE] rounded-lg text-left hidden md:block select-none shadow-2xs">
+          <span className="text-[10px] font-bold text-[#5C6B63] uppercase tracking-wider block mb-2.5">
+            WORKSPACE ACTIVITY
           </span>
-          <div className="space-y-2 text-[11px] text-muted-foreground">
-            <div className="flex justify-between items-center">
-              <span>Command Palette</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-background border border-border/80 font-mono text-[9px] shadow-2xs font-semibold text-foreground/80">⌘/Ctrl K</kbd>
+          
+          {sortedEntries.length === 0 && !isLoading ? (
+            <div className="text-center py-6 text-muted-foreground text-xs font-normal">
+              No recent activity
             </div>
-            <div className="flex justify-between items-center">
-              <span>Run / Resume</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-background border border-border/80 font-mono text-[9px] shadow-2xs font-semibold text-foreground/80">⌘/Ctrl ↵</kbd>
+          ) : (
+            <>
+              {/* Most Recent Document (First Entry) */}
+              {firstEntry && (
+                <div 
+                  onClick={() => handleNavigate(firstEntry)}
+                  className="group/item flex items-start gap-2.5 p-2 rounded-md hover:bg-muted/40 cursor-pointer transition-all duration-200 mb-3 border border-transparent hover:border-[#E3E5DE]/40"
+                >
+                  {/* Future-proof thumbnail container / Icon slot */}
+                  <div className="h-9 w-7 bg-muted/40 border border-border/50 rounded flex items-center justify-center text-muted-foreground/80 shrink-0 shadow-2xs group-hover/item:bg-background transition-colors">
+                    <FileText className="h-4.5 w-4.5" />
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col gap-1">
+                    <span className="text-xs font-bold text-foreground truncate group-hover/item:text-primary transition-colors">
+                      {firstEntry.title || deriveDocumentTitle(firstEntry.title, firstEntry.prompt, undefined, firstEntry.mode)}
+                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[9px] font-bold text-muted-foreground/80 uppercase">
+                        {firstEntry.format.toUpperCase()}
+                      </span>
+                      <span className="text-[9px] text-muted-foreground/50 font-normal">·</span>
+                      {renderStatusBadge(firstEntry.status || 'completed')}
+                      <span className="text-[9px] text-muted-foreground/50 font-normal">·</span>
+                      <span className="text-[9px] text-muted-foreground font-normal whitespace-nowrap">
+                        {formatRelativeTime(firstEntry.created_at)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Remaining two entries */}
+              {remainingEntries.length > 0 && (
+                <div className="space-y-2 border-t border-[#E3E5DE] pt-2.5 mb-3">
+                  {remainingEntries.map((entry) => (
+                    <div
+                      key={entry.id}
+                      onClick={() => handleNavigate(entry)}
+                      className="group/sub flex items-center gap-2 p-1.5 rounded hover:bg-muted/40 cursor-pointer transition-all duration-150"
+                    >
+                      <FileText className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0 group-hover/sub:text-primary transition-colors" />
+                      <div className="flex-1 min-w-0 flex flex-col">
+                        <span className="text-[11px] font-semibold text-foreground truncate group-hover/sub:text-primary transition-colors">
+                          {entry.title || deriveDocumentTitle(entry.title, entry.prompt, undefined, entry.mode)}
+                        </span>
+                        <div className="flex items-center gap-1 mt-0.5 text-[9px] text-muted-foreground font-normal">
+                          <span className="uppercase font-bold">{entry.format.toUpperCase()}</span>
+                          <span>·</span>
+                          <span>{entry.status === 'error' ? 'Failed' : entry.status === 'reviewing' ? 'Needs Review' : 'Completed'}</span>
+                          <span>·</span>
+                          <span>{formatRelativeTime(entry.created_at)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Monthly Usage section */}
+          <div className="border-t border-[#E3E5DE] pt-2.5">
+            <div className="flex justify-between items-center text-[10px] font-bold mb-1 text-muted-foreground/90 uppercase tracking-wider">
+              <span>Monthly Usage</span>
+              <span className="text-foreground font-bold">{activeUsed} of {activeLimit} reports</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span>New Document</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-background border border-border/80 font-mono text-[9px] shadow-2xs font-semibold text-foreground/80">⌘/Ctrl ⇧N</kbd>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>Download PDF</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-background border border-border/80 font-mono text-[9px] shadow-2xs font-semibold text-foreground/80">⌘/Ctrl S</kbd>
+            <div className="h-1 w-full bg-[#EDF3EF] dark:bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-teal-500 rounded-full transition-all duration-300"
+                style={{ width: `${Math.min(100, (activeUsed / activeLimit) * 100)}%` }}
+              />
             </div>
           </div>
         </div>

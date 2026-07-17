@@ -10,7 +10,8 @@ import { useHistory } from '@/hooks/useHistory'
 import { HistoryCard } from '@/components/history/HistoryCard'
 import { PreviewDrawer } from '@/components/history/PreviewDrawer'
 import type { HistoryEntry } from '@/services/historyDB'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
 
 // Reusable config-driven draft templates array for the empty state
 const DRAFT_TEMPLATES = [
@@ -43,6 +44,18 @@ export const HistoryPage: React.FC = () => {
   const [sortBy, setSortBy] = useState<string>('newest')
   const [selectedEntry, setSelectedEntry] = useState<HistoryEntry | null>(null)
   const navigate = useNavigate()
+  const location = useLocation()
+
+  useEffect(() => {
+    if (location.state?.selectedId && entries.length > 0) {
+      const match = entries.find((e) => e.id === location.state.selectedId)
+      if (match) {
+        setSelectedEntry(match)
+        // Clear state so it doesn't reopen drawer on page refresh or filter
+        navigate('/history', { replace: true, state: {} })
+      }
+    }
+  }, [location.state, entries, navigate])
 
   // 1. Memoized list of the last 3 generated documents (uncorrupted by search/filtering rules)
   const recentEntries = useMemo(() => {

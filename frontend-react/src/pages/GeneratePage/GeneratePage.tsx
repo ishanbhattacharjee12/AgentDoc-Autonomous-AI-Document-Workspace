@@ -77,10 +77,24 @@ export const GeneratePage: React.FC = () => {
   useEffect(() => {
     const isGenerating = status !== 'idle' && status !== 'reviewing' && status !== 'completed' && status !== 'error';
     (window as any).__agentdoc_generating = isGenerating;
+    (window as any).__agentdoc_active_prompt = requestText;
+    (window as any).__agentdoc_active_format = format;
+    (window as any).__agentdoc_active_mode = mode;
+    (window as any).__agentdoc_active_status = status;
+    if (status !== 'idle') {
+      (window as any).__agentdoc_active_timestamp = (window as any).__agentdoc_active_timestamp || new Date().toISOString();
+    } else {
+      (window as any).__agentdoc_active_timestamp = null;
+    }
+    
+    window.dispatchEvent(new CustomEvent('agentdoc-status-change', {
+      detail: { status, requestText, format, mode }
+    }));
+    
     return () => {
       (window as any).__agentdoc_generating = false;
     }
-  }, [status])
+  }, [status, requestText, format, mode])
 
   // Error handling states
   const [errorType, setErrorType] = useState<ErrorType>('general')
