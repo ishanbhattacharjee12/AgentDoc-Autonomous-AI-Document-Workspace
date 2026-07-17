@@ -71,15 +71,17 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
       {/* Overview Metrics Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Confidence Card */}
-        <Card className="border-border shadow-sm">
-          <CardContent className="p-4 flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-muted/20 shrink-0">
+        <Card className="border-border shadow-sm h-full">
+          <CardContent className="p-4 flex items-start gap-3 h-full">
+            <div className="p-2 rounded-lg bg-muted/20 shrink-0 mt-0.5">
               <ShieldCheck className="h-4 w-4 text-muted-foreground" />
             </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-[9.5px] uppercase font-semibold text-muted-foreground tracking-wider block break-normal">
-                Planner Confidence
-              </span>
+            <div className="flex-1 min-w-0 flex flex-col justify-between h-full">
+              <div className="min-h-[28px] flex items-center">
+                <span className="text-[9.5px] uppercase font-semibold text-muted-foreground tracking-wider block break-normal leading-tight">
+                  Planner Confidence
+                </span>
+              </div>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className={`h-2 w-2 rounded-full ${confStyle.dot}`} />
                 <span className="text-sm font-bold text-foreground capitalize">
@@ -91,52 +93,58 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
         </Card>
 
         {/* Complexity Card */}
-        <Card className="border-border shadow-sm">
-          <CardContent className="p-4 flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-muted/20 shrink-0">
+        <Card className="border-border shadow-sm h-full">
+          <CardContent className="p-4 flex items-start gap-3 h-full">
+            <div className="p-2 rounded-lg bg-muted/20 shrink-0 mt-0.5">
               <Layers className="h-4 w-4 text-muted-foreground" />
             </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-[9.5px] uppercase font-semibold text-muted-foreground tracking-wider block break-normal">
-                Task Complexity
-              </span>
-              <span className="text-sm font-bold text-foreground block mt-1">
+            <div className="flex-1 min-w-0 flex flex-col justify-between h-full">
+              <div className="min-h-[28px] flex items-center">
+                <span className="text-[9.5px] uppercase font-semibold text-muted-foreground tracking-wider block break-normal leading-tight">
+                  Task Complexity
+                </span>
+              </div>
+              <div className="text-sm font-bold text-foreground block mt-1">
                 {compStyle.badge}
-              </span>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Estimated Reading Time */}
-        <Card className="border-border shadow-sm">
-          <CardContent className="p-4 flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-muted/20 shrink-0">
+        <Card className="border-border shadow-sm h-full">
+          <CardContent className="p-4 flex items-start gap-3 h-full">
+            <div className="p-2 rounded-lg bg-muted/20 shrink-0 mt-0.5">
               <Clock className="h-4 w-4 text-muted-foreground" />
             </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-[9.5px] uppercase font-semibold text-muted-foreground tracking-wider block break-normal">
-                Estimated Reading Time
-              </span>
-              <span className="text-sm font-bold text-foreground block mt-1">
+            <div className="flex-1 min-w-0 flex flex-col justify-between h-full">
+              <div className="min-h-[28px] flex items-center">
+                <span className="text-[9.5px] uppercase font-semibold text-muted-foreground tracking-wider block break-normal leading-tight">
+                  Estimated Reading Time
+                </span>
+              </div>
+              <div className="text-sm font-bold text-foreground block mt-1">
                 {data.reading_time || '5 mins'}
-              </span>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Implementation Effort */}
-        <Card className="border-border shadow-sm">
-          <CardContent className="p-4 flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-muted/20 shrink-0">
+        <Card className="border-border shadow-sm h-full">
+          <CardContent className="p-4 flex items-start gap-3 h-full">
+            <div className="p-2 rounded-lg bg-muted/20 shrink-0 mt-0.5">
               <Wrench className="h-4 w-4 text-muted-foreground" />
             </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-[9.5px] uppercase font-semibold text-muted-foreground tracking-wider block break-normal">
-                Implementation Effort
-              </span>
-              <span className="text-sm font-bold text-foreground block mt-1">
+            <div className="flex-1 min-w-0 flex flex-col justify-between h-full">
+              <div className="min-h-[28px] flex items-center">
+                <span className="text-[9.5px] uppercase font-semibold text-muted-foreground tracking-wider block break-normal leading-tight">
+                  Implementation Effort
+                </span>
+              </div>
+              <div className="text-sm font-bold text-foreground block mt-1">
                 {data.implementation_effort || 'Moderate'}
-              </span>
+              </div>
             </div>
           </CardContent>
         </Card>

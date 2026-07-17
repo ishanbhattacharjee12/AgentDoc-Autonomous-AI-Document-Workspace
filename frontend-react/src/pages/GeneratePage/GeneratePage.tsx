@@ -268,7 +268,11 @@ export const GeneratePage: React.FC = () => {
           })
           setStatus('reviewing')
         } else {
-          setResultData(data)
+          const enrichedData = {
+            ...data,
+            time_taken: data.total_execution_time || data.time_taken
+          }
+          setResultData(enrichedData)
           setStatus('completed')
           setShowSuccessBanner(true)
           saveHistoryEntry({
@@ -278,7 +282,7 @@ export const GeneratePage: React.FC = () => {
             format,
             mode,
             created_at: new Date().toISOString(),
-            time_taken: data.time_taken,
+            time_taken: enrichedData.time_taken,
             active_model: data.active_model,
             llm_call_count: data.llm_call_count,
           }).catch((err) => console.error('Failed to save to IndexedDB history:', err))
@@ -337,7 +341,11 @@ export const GeneratePage: React.FC = () => {
       onReview: () => {},
       onResult: (data: GenerationResultData) => {
         cleanupStreams()
-        setResultData(data)
+        const enrichedData = {
+          ...data,
+          time_taken: data.total_execution_time || (data as any).total_execution_time || data.time_taken
+        }
+        setResultData(enrichedData)
         setStatus('completed')
         setShowSuccessBanner(true)
         if (reviewPlanData) {
@@ -348,7 +356,7 @@ export const GeneratePage: React.FC = () => {
             format: reviewPlanData.format,
             mode: reviewPlanData.mode,
             created_at: new Date().toISOString(),
-            time_taken: data.time_taken,
+            time_taken: enrichedData.time_taken,
             active_model: data.active_model,
             llm_call_count: data.llm_call_count,
           }).catch((err) => console.error('Failed to save to IndexedDB history:', err))
@@ -628,28 +636,20 @@ Example: "Create a Software Requirements Specification for an e-commerce platfor
                 {/* Tab 1: Document (Default & Primary Focus Preview) */}
                 <TabsContent value="document" className="focus-visible:ring-0">
                   <StreamingDocumentViewer 
-                    content={resultData.summary} 
+                    content={displayText} 
                     isStreaming={false} 
                     title="Output Content Preview"
+                    resultData={resultData}
                   />
                 </TabsContent>
 
                 {/* Tab 2: Execution (Details - Stepper + Stepper Breakdown + Logs) */}
-                <TabsContent value="execution" className="flex flex-col gap-6 text-left focus-visible:ring-0 animate-[fadeIn_0.15s_ease-out]">
-                  <Card className="border-border shadow-sm">
-                    <CardHeader className="border-b border-border pb-3 bg-muted/10">
-                      <CardTitle className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
-                        Execution Pipeline Stages
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                      <StageTracker currentStage="completed" />
-                    </CardContent>
-                  </Card>
+                <TabsContent value="execution" className="flex flex-col gap-5 text-left focus-visible:ring-0 animate-[fadeIn_0.15s_ease-out]">
+                  <StageTracker currentStage="completed" />
 
                   {/* Dynamic Accordion Per-Task Execution Breakdown */}
                   {resultData.execution_results && resultData.execution_results.length > 0 && (
-                    <div className="flex flex-col gap-4 mt-2">
+                    <div className="flex flex-col gap-3 mt-1">
                       <h4 className="text-xs font-bold uppercase text-muted-foreground tracking-wider">
                         Per-Task Execution Breakdown
                       </h4>

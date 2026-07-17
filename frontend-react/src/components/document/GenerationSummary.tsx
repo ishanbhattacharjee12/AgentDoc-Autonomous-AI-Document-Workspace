@@ -7,13 +7,23 @@ interface GenerationSummaryProps {
   data: GenerationResultData
 }
 
+const formatDuration = (seconds: number | undefined | null): string => {
+  if (seconds == null || isNaN(seconds)) return '—'
+  if (seconds < 60) {
+    return `${seconds.toFixed(1)} seconds`
+  }
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.round(seconds % 60)
+  return secs === 0 ? `${mins} min` : `${mins} min ${secs} sec`
+}
+
 export const GenerationSummary: React.FC<GenerationSummaryProps> = ({ data }) => {
   const metrics = [
     { label: 'Active Model', value: data.active_model || 'hy3-free', icon: Cpu, class: 'font-mono' },
     { label: 'LLM Provider', value: data.provider || 'OpenCode Zen', icon: Server },
     { label: 'Tokens Consumed', value: data.llm_tokens_used != null ? `${data.llm_tokens_used.toLocaleString()} tokens` : '—', icon: Coins },
     { label: 'LLM Call Count', value: data.llm_call_count != null ? `${data.llm_call_count} calls` : '—', icon: Activity },
-    { label: 'Total Duration', value: data.time_taken != null ? `${data.time_taken.toFixed(1)}s` : '—', icon: Zap },
+    { label: 'Total Duration', value: formatDuration(data.time_taken), icon: Zap },
   ]
 
   return (

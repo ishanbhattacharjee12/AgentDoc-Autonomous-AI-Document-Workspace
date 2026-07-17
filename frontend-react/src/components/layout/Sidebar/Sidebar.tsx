@@ -63,7 +63,7 @@ export const Sidebar: React.FC = () => {
         </div>
 
         {/* Navigation list */}
-        <nav className="flex-1 space-y-1.5 p-4 overflow-y-auto">
+        <nav className="space-y-1.5 p-4">
           {navItems.map((item) => {
             const Icon = item.icon
             return (
@@ -101,6 +101,9 @@ export const Sidebar: React.FC = () => {
             )
           })}
         </nav>
+
+        {/* Center Whitespace Spacer */}
+        <div className="flex-1" />
         
         {/* Quick Tips reference card */}
         <div className="mx-4 my-3 p-3 bg-muted/30 border border-border/50 rounded-lg text-left hidden md:block select-none">

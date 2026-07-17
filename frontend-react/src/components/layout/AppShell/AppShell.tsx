@@ -15,8 +15,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         <Sidebar />
 
         {/* Main Content Pane */}
-        <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden p-6 md:p-10">
-          <div className="mx-auto w-full max-w-[960px] animate-[fadeIn_0.3s_ease-out]">
+        <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden p-4 md:p-6 lg:p-8">
+          <div className="mx-auto w-full max-w-[1200px] animate-[fadeIn_0.3s_ease-out]">
             {children}
           </div>
         </main>

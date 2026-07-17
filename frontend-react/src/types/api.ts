@@ -43,6 +43,7 @@ export interface GenerationResultData {
   llm_tokens_used?: number
   llm_call_count?: number
   time_taken?: number
+  total_execution_time?: number
   active_model?: string
   provider?: string
   // Explainability & Insights fields
