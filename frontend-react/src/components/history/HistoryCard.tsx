@@ -48,8 +48,8 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
   }, [entry.title, entry.prompt, entry.mode])
 
   const cardSummary = React.useMemo(() => {
-    return deriveDocumentSummary(entry.summary, undefined, undefined)
-  }, [entry.summary])
+    return deriveDocumentSummary(entry.summary, undefined, undefined, entry.prompt, entry.mode)
+  }, [entry.summary, entry.prompt, entry.mode])
 
   const [isEditing, setIsEditing] = useState(false)
   const [tempTitle, setTempTitle] = useState(entry.title || cardTitle)
