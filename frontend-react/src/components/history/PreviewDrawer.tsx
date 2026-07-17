@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { X, Download, FileText, Clock, Cpu, Zap, Pencil } from 'lucide-react'
 import { getDocumentDownloadUrl } from '@/services/api'
+import { deriveDocumentTitle, deriveDocumentSummary } from '@/utils/historyHelpers'
 
 interface PreviewDrawerProps {
   entry: HistoryEntry | null
@@ -15,13 +16,22 @@ export const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entry, onClose, on
   if (!entry) return null
 
   const formatLabel = (entry.format || 'pdf').toUpperCase()
+  
+  const derivedTitle = React.useMemo(() => {
+    return deriveDocumentTitle(entry.title, entry.prompt, undefined, entry.mode)
+  }, [entry.title, entry.prompt, entry.mode])
+
+  const derivedSummary = React.useMemo(() => {
+    return deriveDocumentSummary(entry.summary, undefined, undefined)
+  }, [entry.summary])
+
   const [isEditing, setIsEditing] = useState(false)
-  const [tempTitle, setTempTitle] = useState(entry.title || '')
+  const [tempTitle, setTempTitle] = useState(entry.title || derivedTitle)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    setTempTitle(entry.title || '')
-  }, [entry.title])
+    setTempTitle(entry.title || derivedTitle)
+  }, [entry.title, derivedTitle])
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -95,7 +105,7 @@ export const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entry, onClose, on
             ) : (
               <div className="flex items-start justify-between gap-2 group/drawer-title">
                 <h1 className="text-base font-bold text-foreground leading-snug">
-                  {entry.title || entry.prompt}
+                  {derivedTitle}
                 </h1>
                 <Button
                   variant="ghost"
@@ -156,9 +166,9 @@ export const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entry, onClose, on
             <p className="text-[11px] font-semibold uppercase text-muted-foreground tracking-wider mb-3">
               Document Summary
             </p>
-            {entry.summary ? (
+            {derivedSummary ? (
               <div className="prose prose-sm max-w-none text-foreground/90 leading-relaxed text-sm font-normal">
-                {entry.summary}
+                {derivedSummary}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground italic font-normal">

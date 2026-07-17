@@ -27,6 +27,7 @@ import { PlanReviewEditor } from '@/components/document/PlanReviewEditor'
 
 import { saveHistoryEntry } from '@/services/historyDB'
 import { useCommandPalette } from '@/components/layout/CommandPalette/CommandPaletteContext'
+import { deriveDocumentTitle, deriveDocumentSummary } from '@/utils/historyHelpers'
 
 type PageStatus = 'idle' | 'planning' | 'executing' | 'synthesizing' | 'reflecting' | 'generating' | 'reviewing' | 'completed' | 'error'
 
@@ -275,9 +276,12 @@ export const GeneratePage: React.FC = () => {
           setResultData(enrichedData)
           setStatus('completed')
           setShowSuccessBanner(true)
+          const derivedTitle = deriveDocumentTitle(data.title, requestText, displayText, data.document_type)
+          const derivedSummary = deriveDocumentSummary(data.summary, data.execution_results, displayText)
           saveHistoryEntry({
+            title: derivedTitle,
             prompt: requestText,
-            summary: data.summary || '',
+            summary: derivedSummary,
             document_filename: data.document_filename,
             format,
             mode,
@@ -349,9 +353,12 @@ export const GeneratePage: React.FC = () => {
         setStatus('completed')
         setShowSuccessBanner(true)
         if (reviewPlanData) {
+          const derivedTitle = deriveDocumentTitle(data.title, reviewPlanData.request, displayText, data.document_type)
+          const derivedSummary = deriveDocumentSummary(data.summary, data.execution_results, displayText)
           saveHistoryEntry({
+            title: derivedTitle,
             prompt: reviewPlanData.request,
-            summary: data.summary || '',
+            summary: derivedSummary,
             document_filename: data.document_filename,
             format: reviewPlanData.format,
             mode: reviewPlanData.mode,

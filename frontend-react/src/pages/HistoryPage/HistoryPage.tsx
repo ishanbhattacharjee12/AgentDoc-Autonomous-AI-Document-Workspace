@@ -197,13 +197,20 @@ export const HistoryPage: React.FC = () => {
             <CardTitle className="text-base flex items-center gap-2">
               <SlidersHorizontal className="h-4 w-4 text-muted-foreground" /> Document Finder & Filters
             </CardTitle>
-            <CardDescription className="flex flex-col gap-2.5">
+            <CardDescription className="flex flex-col gap-1.5">
               <span>Narrow down document lists by query keywords, formats, modes, or favorites toggle.</span>
               {entries.length > 0 && (
-                <span className="text-[11px] text-muted-foreground/80 flex items-center gap-1.5 mt-0.5 bg-muted/40 px-2.5 py-1.5 rounded border border-border/40 w-fit select-none">
-                  <Info className="h-3.5 w-3.5 text-[#2C6E5C] shrink-0" />
-                  Showing your 3 most recent documents. Search to access up to your last 10 saved generations.
-                </span>
+                <div className="flex items-start gap-3 mt-2 bg-emerald-500/10 border border-emerald-500/25 px-4 py-3 rounded-lg w-full max-w-xl shadow-xs select-none animate-[fadeIn_0.2s_ease-out]">
+                  <Info className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                      Document Display Limit
+                    </span>
+                    <span className="text-[11px] text-emerald-700/90 dark:text-emerald-400/80 leading-normal font-medium">
+                      Showing your 3 most recent documents. Use the search bar below to access up to your last 10 saved generations.
+                    </span>
+                  </div>
+                </div>
               )}
             </CardDescription>
           </div>

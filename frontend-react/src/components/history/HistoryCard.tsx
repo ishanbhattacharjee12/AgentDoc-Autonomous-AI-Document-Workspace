@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { FileText, Download, Eye, Trash2, Clock, Star, Copy, Pencil } from 'lucide-react'
 import { getDocumentDownloadUrl } from '@/services/api'
+import { deriveDocumentTitle, deriveDocumentSummary } from '@/utils/historyHelpers'
 
 interface HistoryCardProps {
   entry: HistoryEntry
@@ -41,13 +42,22 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
   onDuplicate,
 }) => {
   const formatLabel = (entry.format || 'pdf').toUpperCase()
+  
+  const cardTitle = React.useMemo(() => {
+    return deriveDocumentTitle(entry.title, entry.prompt, undefined, entry.mode)
+  }, [entry.title, entry.prompt, entry.mode])
+
+  const cardSummary = React.useMemo(() => {
+    return deriveDocumentSummary(entry.summary, undefined, undefined)
+  }, [entry.summary])
+
   const [isEditing, setIsEditing] = useState(false)
-  const [tempTitle, setTempTitle] = useState(entry.title || '')
+  const [tempTitle, setTempTitle] = useState(entry.title || cardTitle)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    setTempTitle(entry.title || '')
-  }, [entry.title])
+    setTempTitle(entry.title || cardTitle)
+  }, [entry.title, cardTitle])
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -113,18 +123,18 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
                 onChange={(e) => setTempTitle(e.target.value)}
                 onBlur={handleSave}
                 onKeyDown={handleKeyDown}
-                className="w-full text-sm font-semibold text-foreground bg-muted/40 border border-primary/30 rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary focus:bg-background"
+                className="w-full text-base font-bold text-foreground bg-muted/40 border border-primary/30 rounded px-2.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary focus:bg-background"
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
               <div className="flex items-center gap-1.5 group/title">
-                <h3 className="text-sm font-semibold text-foreground leading-snug truncate">
-                  {entry.title || entry.prompt}
+                <h3 className="text-base font-bold text-foreground leading-snug truncate">
+                  {cardTitle}
                 </h3>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-5 w-5 text-muted-foreground/50 hover:text-primary opacity-0 group-hover/title:opacity-100 focus:opacity-100 transition-opacity rounded cursor-pointer shrink-0"
+                  className="h-5 w-5 text-muted-foreground/50 hover:text-primary opacity-0 group-hover/title:opacity-100 focus:opacity-100 transition-opacity rounded cursor-pointer shrink-0 mt-0.5"
                   onClick={(e) => {
                     e.stopPropagation()
                     setIsEditing(true)
@@ -136,8 +146,8 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
               </div>
             )}
             
-            <p className="text-[11px] text-muted-foreground truncate mt-0.5" title={entry.prompt}>
-              Prompt: {entry.prompt}
+            <p className="text-xs text-muted-foreground/70 italic mt-1.5 truncate" title={entry.prompt}>
+              Prompt: "{entry.prompt}"
             </p>
           </div>
 
@@ -157,9 +167,9 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
         </div>
 
         {/* Row 2: Rich synopsis snippet */}
-        {entry.summary && (
-          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 pl-12 font-normal">
-            {entry.summary}
+        {cardSummary && (
+          <p className="text-sm text-muted-foreground/90 leading-relaxed line-clamp-3 pl-12 font-normal">
+            {cardSummary}
           </p>
         )}
 
@@ -178,6 +188,16 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
           {entry.time_taken != null && (
             <span className="text-[11px] text-muted-foreground">
               · {entry.time_taken.toFixed(1)}s
+            </span>
+          )}
+          {entry.active_model && (
+            <span className="text-[10px] text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded border border-border/20">
+              {entry.active_model}
+            </span>
+          )}
+          {entry.llm_call_count != null && (
+            <span className="text-[11px] text-muted-foreground">
+              · {entry.llm_call_count} calls
             </span>
           )}
         </div>

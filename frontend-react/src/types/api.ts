@@ -37,6 +37,7 @@ export interface PlanReviewData {
 }
 
 export interface GenerationResultData {
+  title?: string
   summary: string
   document_filename: string
   stage_metrics?: Record<string, number>
