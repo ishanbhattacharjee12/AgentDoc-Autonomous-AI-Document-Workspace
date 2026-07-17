@@ -28,9 +28,17 @@ export function useHistory() {
     }
   }, [])
 
-  // Load entries on mount
+  // Load entries on mount and subscribe to reactive history change events
   useEffect(() => {
     refresh()
+
+    const handleHistoryChange = () => {
+      refresh()
+    }
+    window.addEventListener('agentdoc-history-change', handleHistoryChange)
+    return () => {
+      window.removeEventListener('agentdoc-history-change', handleHistoryChange)
+    }
   }, [refresh])
 
   const addEntry = useCallback(

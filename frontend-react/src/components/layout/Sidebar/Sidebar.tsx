@@ -18,6 +18,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Calculate Metrics from history
   const avgQuality = React.useMemo(() => {
+    if (entries.length === 0) return '—'
     const qualities = entries
       .map((e) => e.metadata?.quality)
       .filter(Boolean) as string[]
@@ -37,6 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, [entries])
 
   const avgTime = React.useMemo(() => {
+    if (entries.length === 0) return null
     const times = entries.map((e) => e.time_taken).filter((t) => t != null && t > 0) as number[]
     if (times.length === 0) return 27
     const sum = times.reduce((a, b) => a + b, 0)
@@ -44,6 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, [entries])
 
   const preferredMode = React.useMemo(() => {
+    if (entries.length === 0) return '—'
     const modes = entries.map((e) => e.mode).filter(Boolean)
     if (modes.length === 0) return 'Standard'
     const counts: Record<string, number> = {}
@@ -191,7 +194,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <Zap className="h-3.5 w-3.5 text-muted-foreground/70" />
                   <span>Avg Time</span>
                 </div>
-                <span className="font-bold text-foreground">{avgTime} sec</span>
+                <span className="font-bold text-foreground">{avgTime === null ? '—' : `${avgTime} sec`}</span>
               </div>
 
               <div className="flex justify-between items-center text-xs">

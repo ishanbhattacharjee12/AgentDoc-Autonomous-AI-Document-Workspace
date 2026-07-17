@@ -38,6 +38,12 @@ export interface HistoryEntry {
   metadata?: Record<string, any>
 }
 
+function notifyChange() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('agentdoc-history-change'))
+  }
+}
+
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION)
@@ -131,9 +137,13 @@ export async function saveHistoryEntry(entry: Omit<HistoryEntry, 'id'>): Promise
             }
           }
         }
+        notifyChange()
         resolve(newId)
       }
-      getAllRequest.onerror = () => resolve(newId)
+      getAllRequest.onerror = () => {
+        notifyChange()
+        resolve(newId)
+      }
     }
     request.onerror = () => reject(request.error)
     tx.oncomplete = () => db.close()
@@ -169,7 +179,10 @@ export async function deleteHistoryEntry(id: number): Promise<void> {
     const tx = db.transaction(STORE_NAME, 'readwrite')
     const store = tx.objectStore(STORE_NAME)
     const request = store.delete(id)
-    request.onsuccess = () => resolve()
+    request.onsuccess = () => {
+      notifyChange()
+      resolve()
+    }
     request.onerror = () => reject(request.error)
     tx.oncomplete = () => db.close()
   })
@@ -184,7 +197,10 @@ export async function clearAllHistory(): Promise<void> {
     const tx = db.transaction(STORE_NAME, 'readwrite')
     const store = tx.objectStore(STORE_NAME)
     const request = store.clear()
-    request.onsuccess = () => resolve()
+    request.onsuccess = () => {
+      notifyChange()
+      resolve()
+    }
     request.onerror = () => reject(request.error)
     tx.oncomplete = () => db.close()
   })
@@ -208,7 +224,10 @@ export async function updateHistoryEntry(id: number, updates: Partial<HistoryEnt
       }
       const updated = { ...data, ...updates }
       const putReq = store.put(updated)
-      putReq.onsuccess = () => resolve()
+      putReq.onsuccess = () => {
+        notifyChange()
+        resolve()
+      }
       putReq.onerror = () => reject(putReq.error)
     }
     getReq.onerror = () => reject(getReq.error)
@@ -253,9 +272,13 @@ export async function duplicateHistoryEntry(id: number): Promise<number> {
               }
             }
           }
+          notifyChange()
           resolve(newId)
         }
-        getAllRequest.onerror = () => resolve(newId)
+        getAllRequest.onerror = () => {
+          notifyChange()
+          resolve(newId)
+        }
       }
       addReq.onerror = () => reject(addReq.error)
     }
