@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { Clock, Search, Trash2, Plus, FileText, Star, SlidersHorizontal, Sparkles } from 'lucide-react'
+import { Clock, Search, Trash2, Plus, FileText, Star, SlidersHorizontal, Sparkles, Info } from 'lucide-react'
 import { useHistory } from '@/hooks/useHistory'
 import { HistoryCard } from '@/components/history/HistoryCard'
 import { PreviewDrawer } from '@/components/history/PreviewDrawer'
@@ -106,6 +106,13 @@ export const HistoryPage: React.FC = () => {
     return result
   }, [entries, searchQuery, formatFilter, modeFilter, favoritesOnly, sortBy])
 
+  const displayedEntries = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return processedEntries.slice(0, 3)
+    }
+    return processedEntries
+  }, [processedEntries, searchQuery])
+
   const handleClearAll = () => {
     if (
       window.confirm(
@@ -190,8 +197,14 @@ export const HistoryPage: React.FC = () => {
             <CardTitle className="text-base flex items-center gap-2">
               <SlidersHorizontal className="h-4 w-4 text-muted-foreground" /> Document Finder & Filters
             </CardTitle>
-            <CardDescription>
-              Narrow down document lists by query keywords, formats, modes, or favorites toggle.
+            <CardDescription className="flex flex-col gap-2.5">
+              <span>Narrow down document lists by query keywords, formats, modes, or favorites toggle.</span>
+              {entries.length > 0 && (
+                <span className="text-[11px] text-muted-foreground/80 flex items-center gap-1.5 mt-0.5 bg-muted/40 px-2.5 py-1.5 rounded border border-border/40 w-fit select-none">
+                  <Info className="h-3.5 w-3.5 text-[#2C6E5C] shrink-0" />
+                  Showing your 3 most recent documents. Search to access up to your last 10 saved generations.
+                </span>
+              )}
             </CardDescription>
           </div>
 
@@ -355,8 +368,8 @@ export const HistoryPage: React.FC = () => {
             />
           ) : (
             /* History Listing Grid */
-            <div className="grid grid-cols-1 gap-4">
-              {processedEntries.map((entry) => (
+            <div className="grid grid-cols-1 gap-4 main-history-list">
+              {displayedEntries.map((entry) => (
                 <HistoryCard
                   key={entry.id}
                   entry={entry}

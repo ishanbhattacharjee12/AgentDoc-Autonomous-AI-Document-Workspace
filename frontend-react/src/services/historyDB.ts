@@ -116,7 +116,25 @@ export async function saveHistoryEntry(entry: Omit<HistoryEntry, 'id'>): Promise
     const tx = db.transaction(STORE_NAME, 'readwrite')
     const store = tx.objectStore(STORE_NAME)
     const request = store.add(entry)
-    request.onsuccess = () => resolve(request.result as number)
+    request.onsuccess = () => {
+      const newId = request.result as number
+      const getAllRequest = store.getAll()
+      getAllRequest.onsuccess = () => {
+        const allEntries = getAllRequest.result as HistoryEntry[]
+        if (allEntries.length > 10) {
+          // Sort oldest first (by date)
+          allEntries.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+          const toDeleteCount = allEntries.length - 10
+          for (let i = 0; i < toDeleteCount; i++) {
+            if (allEntries[i].id !== undefined) {
+              store.delete(allEntries[i].id!)
+            }
+          }
+        }
+        resolve(newId)
+      }
+      getAllRequest.onerror = () => resolve(newId)
+    }
     request.onerror = () => reject(request.error)
     tx.oncomplete = () => db.close()
   })
@@ -221,7 +239,24 @@ export async function duplicateHistoryEntry(id: number): Promise<number> {
         created_at: new Date().toISOString()
       }
       const addReq = store.add(duplicated)
-      addReq.onsuccess = () => resolve(addReq.result as number)
+      addReq.onsuccess = () => {
+        const newId = addReq.result as number
+        const getAllRequest = store.getAll()
+        getAllRequest.onsuccess = () => {
+          const allEntries = getAllRequest.result as HistoryEntry[]
+          if (allEntries.length > 10) {
+            allEntries.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+            const toDeleteCount = allEntries.length - 10
+            for (let i = 0; i < toDeleteCount; i++) {
+              if (allEntries[i].id !== undefined) {
+                store.delete(allEntries[i].id!)
+              }
+            }
+          }
+          resolve(newId)
+        }
+        getAllRequest.onerror = () => resolve(newId)
+      }
       addReq.onerror = () => reject(addReq.error)
     }
     getReq.onerror = () => reject(getReq.error)

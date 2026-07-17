@@ -139,7 +139,7 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
             <div className="flex-1 min-w-0 flex flex-col justify-between h-full">
               <div className="min-h-[28px] flex items-center">
                 <span className="text-[9.5px] uppercase font-semibold text-muted-foreground tracking-wider block break-normal leading-tight">
-                  Implementation Effort
+                  Effort Level
                 </span>
               </div>
               <div className="text-sm font-bold text-foreground block mt-1">
