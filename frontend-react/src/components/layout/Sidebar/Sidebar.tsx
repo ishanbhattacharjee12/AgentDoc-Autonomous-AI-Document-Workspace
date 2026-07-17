@@ -47,18 +47,18 @@ export const Sidebar: React.FC = () => {
 
       {/* Sidebar navigation */}
       <aside
-        className={`fixed inset-y-0 left-0 z-20 flex w-[260px] flex-col border-r border-border bg-card transition-transform duration-300 md:sticky md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-20 flex w-[275px] flex-col border-r border-border bg-card transition-transform duration-300 md:sticky md:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Logo Section */}
-        <div className="hidden md:flex h-[64px] items-center gap-2.5 px-6 border-b border-border">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <FileText className="h-5.5 w-5.5" />
+        <div className="hidden md:flex h-[88px] items-center gap-3 px-6 border-b border-border">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary text-primary-foreground shrink-0 shadow-xs">
+            <FileText className="h-6.5 w-6.5" />
           </div>
-          <div>
-            <span className="font-bold text-foreground tracking-tight text-lg block leading-none">AgentDoc</span>
-            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-0.5 block">Document Pipeline</span>
+          <div className="flex flex-col justify-center min-w-0">
+            <span className="font-extrabold text-foreground tracking-tight text-[25px] block leading-none">AgentDoc</span>
+            <span className="text-[9px] text-muted-foreground/85 font-semibold uppercase tracking-wider mt-1.5 block truncate">AI Document Workspace</span>
           </div>
         </div>
 
@@ -70,14 +70,25 @@ export const Sidebar: React.FC = () => {
               <NavLink
                 key={item.to}
                 to={item.to}
-                onClick={() => setIsOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 group border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-                    isActive
-                      ? 'bg-accent/10 border-accent/20 text-accent-foreground font-medium'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                onClick={(e) => {
+                  if ((window as any).__agentdoc_generating) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    alert("A document is currently being generated. Please wait or cancel the active run before navigating.")
+                    return
+                  }
+                  setIsOpen(false)
+                }}
+                className={({ isActive }) => {
+                  const isGenerating = (window as any).__agentdoc_generating;
+                  return `flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 group border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                    isGenerating
+                      ? 'opacity-40 cursor-not-allowed text-muted-foreground'
+                      : isActive
+                        ? 'bg-primary/8 border-primary/10 text-primary font-semibold shadow-xs'
+                        : 'text-muted-foreground hover:bg-muted/65 hover:text-foreground'
                   }`
-                }
+                }}
               >
                 <Icon className="h-5 w-5 shrink-0 transition-colors" />
                 <div className="flex flex-col text-left">
@@ -90,6 +101,31 @@ export const Sidebar: React.FC = () => {
             )
           })}
         </nav>
+        
+        {/* Quick Tips reference card */}
+        <div className="mx-4 my-3 p-3 bg-muted/30 border border-border/50 rounded-lg text-left hidden md:block select-none">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-2">
+            Quick Tips & Keys
+          </span>
+          <div className="space-y-2 text-[11px] text-muted-foreground">
+            <div className="flex justify-between items-center">
+              <span>Command Palette</span>
+              <kbd className="px-1.5 py-0.5 rounded bg-background border border-border/80 font-mono text-[9px] shadow-2xs font-semibold text-foreground/80">⌘/Ctrl K</kbd>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Run / Resume</span>
+              <kbd className="px-1.5 py-0.5 rounded bg-background border border-border/80 font-mono text-[9px] shadow-2xs font-semibold text-foreground/80">⌘/Ctrl ↵</kbd>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>New Document</span>
+              <kbd className="px-1.5 py-0.5 rounded bg-background border border-border/80 font-mono text-[9px] shadow-2xs font-semibold text-foreground/80">⌘/Ctrl ⇧N</kbd>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Download PDF</span>
+              <kbd className="px-1.5 py-0.5 rounded bg-background border border-border/80 font-mono text-[9px] shadow-2xs font-semibold text-foreground/80">⌘/Ctrl S</kbd>
+            </div>
+          </div>
+        </div>
 
         {/* Sidebar Footer */}
         <div className="p-4 border-t border-border bg-muted/20">
@@ -99,7 +135,7 @@ export const Sidebar: React.FC = () => {
             </div>
             <div className="flex flex-col text-left overflow-hidden">
               <span className="text-xs font-semibold text-foreground truncate">AgentDoc Client</span>
-              <span className="text-[10px] text-muted-foreground truncate">v2.0 Beta</span>
+              <span className="text-[10px] text-muted-foreground truncate">v1.0.0</span>
             </div>
           </div>
         </div>

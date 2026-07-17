@@ -58,6 +58,8 @@ export interface GenerationResultData {
   assumptions?: string[]
   routing_outcome?: string
   fallback_reason?: string
+  plan?: any[]
+  execution_results?: any[]
   reflection?: {
     passed: boolean
     grade?: string

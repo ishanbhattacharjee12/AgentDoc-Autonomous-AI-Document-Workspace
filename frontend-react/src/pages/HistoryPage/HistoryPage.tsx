@@ -147,14 +147,14 @@ export const HistoryPage: React.FC = () => {
       {/* Recent Documents Row */}
       {entries.length > 0 && !isLoading && (
         <div className="flex flex-col gap-2.5">
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 pl-0.5">
+          <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 pl-0.5">
             <Clock className="h-3.5 w-3.5" /> Recent Documents
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {recentEntries.map((item) => (
               <Card
                 key={`recent-${item.id}`}
-                className="group border border-border/75 hover:border-primary/30 transition-all cursor-pointer bg-card/45 hover:bg-card hover:shadow-sm"
+                className="hover-lift group border border-border/75 cursor-pointer bg-card/45 hover:bg-card hover:shadow-sm shadow-2xs"
                 onClick={() => setSelectedEntry(item)}
               >
                 <CardContent className="p-4 flex flex-col gap-2">
@@ -228,20 +228,20 @@ export const HistoryPage: React.FC = () => {
                 </Select>
               </div>
 
-              {/* Mode Filter Selection */}
+              {/* Strategy Filter Selection */}
               <div className="flex flex-col gap-1 text-left">
                 <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
-                  Pipeline Mode
+                  Execution Strategy
                 </label>
                 <Select value={modeFilter} onValueChange={(val) => setModeFilter(val || 'all')}>
                   <SelectTrigger className="h-9 w-full bg-background">
-                    <SelectValue placeholder="All Modes" />
+                    <SelectValue placeholder="All Strategies" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Modes</SelectItem>
-                    <SelectItem value="standard">Standard Mode</SelectItem>
-                    <SelectItem value="advanced">Advanced Mode</SelectItem>
-                    <SelectItem value="adaptive">Adaptive Mode</SelectItem>
+                    <SelectItem value="all">All Strategies</SelectItem>
+                    <SelectItem value="standard">Standard Strategy</SelectItem>
+                    <SelectItem value="advanced">Advanced Strategy</SelectItem>
+                    <SelectItem value="adaptive">Adaptive Strategy</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -300,7 +300,7 @@ export const HistoryPage: React.FC = () => {
             <div className="flex flex-col gap-6 items-center py-6 text-center max-w-xl mx-auto">
               <EmptyState
                 title="Your Document Library is empty"
-                description="Your generated documents will persist locally in IndexedDB automatically. Get started instantly with one of our business blueprint templates:"
+                description="Generated documents automatically appear here and remain available locally for future access. Get started instantly with one of our business blueprint templates:"
                 icon={FileText}
                 action={
                   <Button onClick={() => navigate('/generate')} className="gap-2 cursor-pointer">
@@ -313,7 +313,7 @@ export const HistoryPage: React.FC = () => {
                 {DRAFT_TEMPLATES.map((tpl, i) => (
                   <Card
                     key={`template-${i}`}
-                    className="border border-border/80 hover:border-primary/30 bg-muted/10 hover:bg-background transition-all text-left cursor-pointer p-4 flex flex-col justify-between"
+                    className="hover-lift border border-border/80 bg-muted/10 hover:bg-card text-left cursor-pointer p-4 flex flex-col justify-between shadow-2xs"
                     onClick={() => handleSelectTemplate(tpl.prompt, tpl.mode)}
                   >
                     <div>

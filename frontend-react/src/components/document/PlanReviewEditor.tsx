@@ -173,7 +173,7 @@ export const PlanReviewEditor: React.FC<PlanReviewEditorProps> = ({
         <Button
           onClick={onResume}
           disabled={plan.length === 0}
-          className="bg-primary text-primary-foreground font-semibold px-8 py-6 h-auto text-sm gap-2 cursor-pointer shadow-md hover:bg-primary/95 transition-all disabled:opacity-50"
+          className="font-semibold px-8 py-6 h-auto text-sm gap-2"
         >
           <Play className="h-4 w-4 fill-primary-foreground" /> Resume Execution Stream
         </Button>

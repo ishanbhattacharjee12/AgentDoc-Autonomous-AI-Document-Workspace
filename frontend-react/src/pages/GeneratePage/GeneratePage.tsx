@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { Select, SelectTrigger, SelectContent, SelectItem } from '@/components/ui/select'
 import { ErrorState } from '@/components/ui/error-state'
 import type { ErrorType } from '@/components/ui/error-state'
 import { SectionHeader } from '@/components/ui/section-header'
@@ -18,6 +18,8 @@ import { StreamingDocumentViewer } from '@/components/document/StreamingDocument
 import { StreamToolbar } from '@/components/document/StreamToolbar'
 import { GenerationSummary } from '@/components/document/GenerationSummary'
 import { InsightsPanel } from '@/components/document/InsightsPanel'
+import { Tooltip } from '@/components/ui/tooltip'
+import { TaskCard } from '@/components/document/TaskCard'
 
 // Tabs workspace layout
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -67,7 +69,18 @@ export const GeneratePage: React.FC = () => {
   const [stageName, setStageName] = useState('Planning')
   const [resultData, setResultData] = useState<GenerationResultData | null>(null)
   const [reviewPlanData, setReviewPlanData] = useState<PlanReviewData | null>(null)
+  const [showSuccessBanner, setShowSuccessBanner] = useState(false)
+  const [expandedTaskId, setExpandedTaskId] = useState<number | null>(1)
   
+  // Sync generating state globally to lock navigation during stream runs
+  useEffect(() => {
+    const isGenerating = status !== 'idle' && status !== 'reviewing' && status !== 'completed' && status !== 'error';
+    (window as any).__agentdoc_generating = isGenerating;
+    return () => {
+      (window as any).__agentdoc_generating = false;
+    }
+  }, [status])
+
   // Error handling states
   const [errorType, setErrorType] = useState<ErrorType>('general')
   const [errorMessage, setErrorMessage] = useState('')
@@ -164,10 +177,15 @@ export const GeneratePage: React.FC = () => {
     }
   }, [registerAction, unregisterAction, status])
 
-  const demo1 =
-    'Create a project plan for launching an AI-powered customer support chatbot for a mid-sized e-commerce company. Include objectives, scope, phases, timeline, team responsibilities, risks, success metrics, and next steps.'
-  const demo2 =
-    "We need to improve customer onboarding because users are dropping off, but we don't know exactly where. Create a practical improvement plan that can be presented to leadership. We want results quickly, the budget is limited, and engineering capacity is small. Decide what should be investigated first, make reasonable assumptions where information is missing, prioritize actions, define success metrics, risks, and a phased 90-day plan."
+
+
+  const demoTemplates = [
+    { title: "🚀 AI Chatbot Launch", prompt: "Create a project plan for launching an AI-powered customer support chatbot, including technical deliverables, remote team coordination tasks, and a 6-month phased rollout timeline." },
+    { title: "📑 SaaS Business Proposal", prompt: "Draft a comprehensive SaaS business proposal targeting corporate clients, detailing software architectures, security assurance, service level agreements, and cost-benefit estimations." },
+    { title: "📊 Quarterly Review", prompt: "Synthesize a Quarterly Business Review (QBR) template outlining remote engineering capacity adjustments, project milestone compliance, and strategic targets for the next half." },
+    { title: "🧑‍💼 Onboarding Handbook", prompt: "Write a modern onboarding roadmap and general employee handbook for remote engineers, documenting culture principles, code review guidelines, and security setup protocols." },
+    { title: "🎯 Marketing Launch", prompt: "Outline a 90-day marketing launch strategy for an AI productivity app, highlighting targeted channels, conversion funnels, brand values, and campaign success metrics." }
+  ]
 
   // Clean up active streams and reset states
   const cleanupStreams = () => {
@@ -252,6 +270,7 @@ export const GeneratePage: React.FC = () => {
         } else {
           setResultData(data)
           setStatus('completed')
+          setShowSuccessBanner(true)
           saveHistoryEntry({
             prompt: requestText,
             summary: data.summary || '',
@@ -320,6 +339,7 @@ export const GeneratePage: React.FC = () => {
         cleanupStreams()
         setResultData(data)
         setStatus('completed')
+        setShowSuccessBanner(true)
         if (reviewPlanData) {
           saveHistoryEntry({
             prompt: reviewPlanData.request,
@@ -363,61 +383,66 @@ export const GeneratePage: React.FC = () => {
             <p className="text-sm text-muted-foreground mt-1">Specify your document goals, and the pipeline agent will outline, structure, and synthesize it.</p>
           </div>
 
-          <form onSubmit={handleRunAgent} className="flex flex-col gap-6">
+          <form onSubmit={handleRunAgent} className="flex flex-col gap-5">
             {/* Main Input Textarea */}
-            <Card className="border-border">
-              <CardContent className="pt-6 flex flex-col gap-4">
+            <Card className="border-border shadow-xs">
+              <CardContent className="p-5 flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
-                  <label htmlFor="prompt-input" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <label htmlFor="prompt-input" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     Document Request Prompt
                   </label>
                   <textarea
                     ref={promptRef}
                     id="prompt-input"
-                    rows={5}
-                    className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 min-h-[120px] resize-y"
-                    placeholder="Describe the document you need generated (e.g. scope, audience, constraints, success criteria)..."
+                    rows={6}
+                    className="flex w-full rounded-lg border border-input bg-transparent px-3.5 py-3 text-sm shadow-2xs placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 min-h-[140px] resize-y leading-relaxed font-normal"
+                    placeholder={`Describe the document you'd like AgentDoc to create...
+
+Include details like:
+• Target Audience & Objectives
+• Design Constraints & Formatting rules
+• Writing Tone & Style preferences
+
+Example: "Create a Software Requirements Specification for an e-commerce platform targeting small businesses."`}
                     value={requestText}
                     onChange={(e) => setRequestText(e.target.value)}
                   />
                 </div>
 
-                {/* Quick Demos */}
-                <div className="flex flex-wrap items-center gap-2 mt-1">
-                  <span className="text-xs text-muted-foreground mr-1">Demo Prompts:</span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setRequestText(demo1)}
-                    className="text-xs py-1 h-8 text-primary border-primary/20 hover:bg-accent/5"
-                  >
-                    Project Plan Chatbot
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setRequestText(demo2)}
-                    className="text-xs py-1 h-8 text-primary border-primary/20 hover:bg-accent/5"
-                  >
-                    Customer Onboarding Improvement
-                  </Button>
+                {/* Quick Demos (Richer templates with hover-lift) */}
+                <div className="flex flex-col gap-2 mt-1 border-t border-border/60 pt-4.5">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    Quick Start Templates
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {demoTemplates.map((template, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setRequestText(template.prompt)}
+                        className="hover-lift inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-foreground bg-card border border-border rounded-lg shadow-2xs hover:bg-muted/10 transition-colors cursor-pointer"
+                      >
+                        {template.title}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Pipeline options bar */}
+             {/* Pipeline options bar */}
             <Card className="border-border">
-              <CardContent className="pt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
                 {/* Format Selection */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Output Format
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Document Format
                   </label>
                   <Select value={format} onValueChange={(val) => setFormat(val as DocumentFormat)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose Format" />
+                    <SelectTrigger className="w-full bg-background shadow-xs">
+                      {format === 'pdf' && 'PDF Document'}
+                      {format === 'docx' && 'Word Document (.docx)'}
+                      {format === 'md' && 'Markdown File (.md)'}
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="pdf">PDF Document</SelectItem>
@@ -429,12 +454,18 @@ export const GeneratePage: React.FC = () => {
 
                 {/* Pipeline Mode Selection */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Execution Mode
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    Execution Strategy
+                    <Tooltip 
+                      side="bottom"
+                      content={`• Standard: Fast single-pass generation. Best for simple templates.\n• Advanced: Multi-stage sequential task execution for maximum depth.\n• Adaptive: Auto-routes based on prompt complexity with error fallback.`}
+                    />
                   </label>
                   <Select value={mode} onValueChange={(val) => setMode(val as ExecutionMode)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose Mode" />
+                    <SelectTrigger className="w-full bg-background shadow-xs">
+                      {mode === 'standard' && 'Standard Mode (Linear)'}
+                      {mode === 'advanced' && 'Advanced Mode (Reflection)'}
+                      {mode === 'adaptive' && 'Adaptive Mode (Automatic)'}
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="standard">Standard Mode (Linear)</SelectItem>
@@ -447,7 +478,10 @@ export const GeneratePage: React.FC = () => {
                 {/* Plan review toggle */}
                 <div className="flex items-center justify-between sm:justify-start gap-6 pt-2 sm:pt-0">
                   <div className="flex flex-col text-left">
-                    <span className="text-sm font-semibold text-foreground">Require Review</span>
+                    <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                      Require Review
+                      <Tooltip content="Pause after the planning stage so you can inspect, edit, and reorganize outline steps before generation starts." />
+                    </span>
                     <span className="text-[11px] text-muted-foreground">Approve plan before generation</span>
                   </div>
                   <Switch checked={requireReview} onCheckedChange={setRequireReview} />
@@ -460,22 +494,23 @@ export const GeneratePage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowAdvanced(!showAdvanced)}
-                className="w-full flex items-center justify-between px-6 py-4 text-left border-none bg-transparent hover:bg-muted/5 transition-colors focus:outline-none"
+                className="w-full flex items-center justify-between px-5 py-3.5 text-left border-none bg-transparent hover:bg-muted/5 transition-colors focus:outline-none"
               >
                 <div className="flex items-center gap-2">
                   <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-semibold text-foreground">Advanced Options & Diagnostics</span>
+                  <span className="text-sm font-semibold text-foreground">Advanced Options</span>
                 </div>
                 {showAdvanced ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
               </button>
               
               {showAdvanced && (
-                <CardContent className="px-6 pb-6 border-t border-border pt-6 flex flex-col gap-6 animate-[fadeIn_0.2s_ease-out]">
+                <CardContent className="px-5 pb-5 border-t border-border pt-5 flex flex-col gap-5 animate-[fadeIn_0.2s_ease-out]">
                   {/* Bypass cache toggle */}
                   <div className="flex items-center justify-between max-w-md">
                     <div className="flex flex-col text-left">
                       <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                        Ignore Request Cache <AlertTriangle className="h-3.5 w-3.5 text-destructive inline" />
+                        Bypass Request Cache <AlertTriangle className="h-3.5 w-3.5 text-destructive inline" />
+                        <Tooltip content="Force a fresh run instead of reading from cached previous responses for this prompt." />
                       </span>
                       <span className="text-[11px] text-muted-foreground">Force pipeline to execute full LLM stages</span>
                     </div>
@@ -506,7 +541,7 @@ export const GeneratePage: React.FC = () => {
               <Button
                 type="submit"
                 disabled={!requestText.trim()}
-                className="bg-primary hover:bg-primary/95 text-primary-foreground font-semibold px-8 py-6 h-auto text-sm gap-2"
+                className="font-semibold px-8 py-6 h-auto text-sm gap-2"
               >
                 <Sparkles className="h-4 w-4" /> Run Agent Pipeline
               </Button>
@@ -560,6 +595,19 @@ export const GeneratePage: React.FC = () => {
       {/* 4. Completed Success State */}
       {status === 'completed' && resultData && (
         <div className="flex flex-col gap-6 animate-[fadeIn_0.3s_ease-out]">
+          {showSuccessBanner && (
+            <div className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-400 px-4 py-3 rounded-lg text-sm font-medium animate-[fadeIn_0.15s_ease-out]">
+              <span className="flex items-center gap-2">
+                <span className="font-semibold">✓</span> Document generated successfully
+              </span>
+              <button 
+                onClick={() => setShowSuccessBanner(false)}
+                className="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 font-semibold text-xs ml-4 cursor-pointer focus:outline-none"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
           <SectionHeader 
             title="Document Completed Successfully" 
             subtitle="The pipeline successfully compiled all document modules into the output build."
@@ -567,9 +615,9 @@ export const GeneratePage: React.FC = () => {
           />
 
           {/* Responsive columns layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            {/* Left Column: Tabbed Workspace (spans 2 columns on lg) */}
-            <div className="lg:col-span-2 flex flex-col gap-4">
+          <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
+            {/* Left Column: Tabbed Workspace */}
+            <div className="flex-1 w-full lg:min-w-0 flex flex-col gap-4">
               <Tabs defaultValue="document" className="w-full">
                 <TabsList className="mb-2">
                   <TabsTrigger value="document">Document</TabsTrigger>
@@ -577,7 +625,7 @@ export const GeneratePage: React.FC = () => {
                   <TabsTrigger value="insights">Insights</TabsTrigger>
                 </TabsList>
 
-                {/* Tab 1: Document (Default & Primary Focus) */}
+                {/* Tab 1: Document (Default & Primary Focus Preview) */}
                 <TabsContent value="document" className="focus-visible:ring-0">
                   <StreamingDocumentViewer 
                     content={resultData.summary} 
@@ -586,7 +634,7 @@ export const GeneratePage: React.FC = () => {
                   />
                 </TabsContent>
 
-                {/* Tab 2: Execution (Optional Details - Stepper + Collapsed logs) */}
+                {/* Tab 2: Execution (Details - Stepper + Stepper Breakdown + Logs) */}
                 <TabsContent value="execution" className="flex flex-col gap-6 text-left focus-visible:ring-0 animate-[fadeIn_0.15s_ease-out]">
                   <Card className="border-border shadow-sm">
                     <CardHeader className="border-b border-border pb-3 bg-muted/10">
@@ -598,6 +646,27 @@ export const GeneratePage: React.FC = () => {
                       <StageTracker currentStage="completed" />
                     </CardContent>
                   </Card>
+
+                  {/* Dynamic Accordion Per-Task Execution Breakdown */}
+                  {resultData.execution_results && resultData.execution_results.length > 0 && (
+                    <div className="flex flex-col gap-4 mt-2">
+                      <h4 className="text-xs font-bold uppercase text-muted-foreground tracking-wider">
+                        Per-Task Execution Breakdown
+                      </h4>
+                      {resultData.execution_results.map((result: any, idx: number) => {
+                        const planTask = resultData.plan?.find((p: any) => p.id === result.task_id)
+                        return (
+                          <TaskCard 
+                            key={result.task_id || idx} 
+                            result={result} 
+                            planTask={planTask} 
+                            isExpanded={expandedTaskId === result.task_id}
+                            onToggle={() => setExpandedTaskId(expandedTaskId === result.task_id ? null : result.task_id)}
+                          />
+                        )
+                      })}
+                    </div>
+                  )}
 
                   {/* Natively Collapsible System Execution Logs */}
                   <details className="group border border-border rounded-lg bg-muted/5 overflow-hidden">
@@ -629,14 +698,13 @@ export const GeneratePage: React.FC = () => {
                 {/* Tab 3: Insights (Advanced metrics/insights details) */}
                 <TabsContent value="insights" className="focus-visible:ring-0 flex flex-col gap-6">
                   <InsightsPanel data={resultData} />
-                  <GenerationSummary data={resultData} />
                 </TabsContent>
               </Tabs>
             </div>
 
-            {/* Right Column: Sidebar containing primary Actions ONLY */}
-            <div className="flex flex-col gap-6 text-left">
-              {/* Primary Actions Card */}
+            {/* Sticky Right Column Utility Sidebar */}
+            <div className="w-full lg:w-[270px] shrink-0 lg:sticky lg:top-6 self-start flex flex-col gap-6 text-left">
+              {/* Document Actions Card */}
               <Card className="border-border shadow-sm">
                 <CardHeader className="border-b border-border pb-3 bg-muted/10">
                   <CardTitle className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
@@ -644,36 +712,42 @@ export const GeneratePage: React.FC = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6 flex flex-col gap-3">
-                  {/* Download primary button */}
+                  {/* Primary Action: Download Main Format */}
                   <a 
                     href={getDocumentDownloadUrl(resultData.document_filename)}
                     download
-                    className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/95 h-11 w-full gap-2 font-semibold"
+                    className="inline-flex items-center justify-center rounded-lg text-sm font-semibold transition-colors bg-[#2C6E5C] hover:bg-[#1f5547] text-[#FFFFFF] shadow-sm h-11 w-full gap-2 px-4 whitespace-nowrap"
                   >
                     <Download className="h-4 w-4" /> Download {format.toUpperCase()} Document
                   </a>
 
-                  {/* Client-side markdown export if format is not already markdown */}
+                  {/* Secondary Action: Download Markdown Export if format is not already markdown */}
                   {format !== 'md' && (
                     <a 
                       href={`data:text/markdown;charset=utf-8,${encodeURIComponent(resultData.summary)}`}
                       download={`${resultData.document_filename.split('.')[0] || 'agentdoc_export'}.md`}
-                      className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-transparent shadow-sm hover:bg-accent/5 hover:text-accent-foreground h-11 w-full gap-2 text-foreground font-semibold"
+                      className="inline-flex items-center justify-center rounded-lg text-sm font-semibold transition-colors border border-border bg-transparent shadow-sm hover:bg-muted hover:text-foreground h-11 w-full gap-2 text-foreground px-4 whitespace-nowrap"
                     >
                       <FileText className="h-4 w-4 text-muted-foreground" /> Download Markdown (.md)
                     </a>
                   )}
 
-                  {/* Reset/Generate Another button */}
+                  {/* Group Divider */}
+                  <div className="border-t border-border/80 my-1" />
+
+                  {/* Utility Action: Reset/Generate New Document */}
                   <Button 
                     onClick={handleReset} 
                     variant="outline" 
-                    className="w-full h-11 gap-2 border-border text-muted-foreground hover:bg-muted/5 mt-1 font-semibold"
+                    className="w-full h-11 gap-2 border-border text-muted-foreground hover:bg-muted/5 font-semibold px-4 whitespace-nowrap"
                   >
                     <RefreshCw className="h-4 w-4" /> Generate New Document
                   </Button>
                 </CardContent>
               </Card>
+
+              {/* Persistent Generation Details */}
+              <GenerationSummary data={resultData} />
             </div>
           </div>
         </div>

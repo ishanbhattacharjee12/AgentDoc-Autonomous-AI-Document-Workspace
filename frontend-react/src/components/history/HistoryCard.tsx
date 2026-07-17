@@ -94,7 +94,7 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
 
   return (
     <Card 
-      className="group border border-border/80 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer bg-card"
+      className="hover-lift group border border-border/80 cursor-pointer bg-card shadow-2xs hover:shadow-sm"
       onClick={handleCardClick}
     >
       <CardContent className="p-5 flex flex-col gap-3.5">

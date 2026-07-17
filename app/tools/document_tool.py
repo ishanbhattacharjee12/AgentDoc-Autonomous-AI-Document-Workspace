@@ -237,38 +237,39 @@ class PDFTheme:
     MARGIN_TOP = 25.4
     MARGIN_BOTTOM = 25.4
     
-    # Colors (RGB)
-    COLOR_PRIMARY = (26, 54, 93)       # Deep Navy
-    COLOR_SECONDARY = (74, 85, 104)     # Slate Grey
-    COLOR_TEXT = (33, 33, 33)           # Charcoal
-    COLOR_MUTED = (128, 128, 128)       # Muted Grey
-    COLOR_DIVIDER = (220, 224, 230)     # Light Grey-Blue
+    # Grayscale-friendly Sage & Green Palette (RGB)
+    COLOR_PRIMARY = (27, 63, 50)       # Dark Forest Green spine & main headers
+    COLOR_SECONDARY = (92, 107, 98)    # Slate / Medium Sage Grey for secondary headers & subtitles
+    COLOR_TEXT = (40, 44, 42)          # Off-black charcoal for body text
+    COLOR_MUTED = (136, 140, 138)      # Muted grey-sage for headers/footers
+    COLOR_DIVIDER = (218, 224, 220)    # Light grey-green for dividers & borders
     
-    # Table Colors
-    COLOR_TABLE_HEADER_FILL = (44, 82, 130)    # Slate Blue
-    COLOR_TABLE_HEADER_TEXT = (255, 255, 255)   # White
-    COLOR_TABLE_CELL_FILL_EVEN = (245, 247, 250) # Light grey-blue
-    COLOR_TABLE_BORDER = (218, 222, 229)       # Light Grey
+    # Table Styling
+    COLOR_TABLE_HEADER_FILL = (27, 63, 50)    # Forest Green Table Header
+    COLOR_TABLE_HEADER_TEXT = (255, 255, 255)   # White Header Text
+    COLOR_TABLE_CELL_FILL_EVEN = (243, 245, 244) # Very soft gray-green background rows
+    COLOR_TABLE_BORDER = (218, 224, 220)       # Light border lines
     
-    # Fonts
+    # Typography
     FONT_FAMILY = "helvetica"
     
     # Font Sizes (pt)
-    SIZE_TITLE = 28
+    SIZE_TITLE = 26
     SIZE_SUBTITLE = 12
-    SIZE_H1 = 16
-    SIZE_H2 = 13
+    SIZE_H1 = 15
+    SIZE_H2 = 12.5
     SIZE_H3 = 11
     SIZE_BODY = 10
     SIZE_FOOTER = 8
     
     # Line Heights (mm)
-    LEAD_TITLE = 12
+    LEAD_TITLE = 11
     LEAD_SUBTITLE = 8
     LEAD_H1 = 8
     LEAD_H2 = 7
     LEAD_H3 = 6
     LEAD_BODY = 6
+    LEAD_FOOTER = 5.5
 
 
 class PDF(FPDF):
@@ -286,6 +287,7 @@ class PDF(FPDF):
             self.add_page()
 
     def header(self):
+        # Header runs only on content pages (page > 1)
         if self.page_no() > 1:
             current_l_margin = self.l_margin
             current_r_margin = self.r_margin
@@ -294,18 +296,18 @@ class PDF(FPDF):
             
             self.set_y(12)
             self.set_font(PDFTheme.FONT_FAMILY, "I", PDFTheme.SIZE_FOOTER)
-            self.set_text_color(*PDFTheme.COLOR_SECONDARY)
+            self.set_text_color(*PDFTheme.COLOR_MUTED)
             
             # Left Header: title & type
             clean_type = self.doc_type.replace('_', ' ').title()
-            header_text = f"{self.doc_title} | {clean_type}"
+            header_text = f"AgentDoc | {self.doc_title} ({clean_type})"
             self.cell(0, 8, _to_latin1(header_text), align="L")
             
-            # Right Header: date
+            # Right Header: Date
             self.set_x(self.w - PDFTheme.MARGIN_RIGHT - 50)
             self.cell(50, 8, _to_latin1(self.gen_date), align="R")
             
-            # Draw line
+            # Draw header line divider
             line_y = 20
             self.set_draw_color(*PDFTheme.COLOR_DIVIDER)
             self.set_line_width(0.3)
@@ -316,13 +318,14 @@ class PDF(FPDF):
             self.set_y(PDFTheme.MARGIN_TOP)
 
     def footer(self):
+        # Footer runs only on content pages (page > 1)
         if self.page_no() > 1:
             current_l_margin = self.l_margin
             current_r_margin = self.r_margin
             self.set_left_margin(PDFTheme.MARGIN_LEFT)
             self.set_right_margin(PDFTheme.MARGIN_RIGHT)
             
-            # Draw line
+            # Draw footer line divider
             line_y = self.h - 18
             self.set_draw_color(*PDFTheme.COLOR_DIVIDER)
             self.set_line_width(0.3)
@@ -340,6 +343,480 @@ class PDF(FPDF):
             self.set_right_margin(current_r_margin)
 
 
+# ---------------- VECTOR GRAPHIC ICONS next to HEADINGS ----------------
+def draw_heading_icon(pdf, section_type, x, y, size=4.0):
+    """Draw a clean, crisp vector graphic icon based on the semantic section type."""
+    if section_type == "objectives":
+        # Target Concentric Circles
+        pdf.set_draw_color(*PDFTheme.COLOR_PRIMARY)
+        pdf.set_line_width(0.4)
+        pdf.circle(x + size/2, y + size/2, size/2)
+        pdf.circle(x + size/2, y + size/2, size/4)
+    elif section_type == "recommendations":
+        # Next Steps Horizontal Arrow
+        pdf.set_draw_color(*PDFTheme.COLOR_PRIMARY)
+        pdf.set_line_width(0.6)
+        pdf.line(x, y + size/2, x + size - 0.5, y + size/2)
+        pdf.line(x + size - 2.0, y + size/2 - 1.5, x + size - 0.5, y + size/2)
+        pdf.line(x + size - 2.0, y + size/2 + 1.5, x + size - 0.5, y + size/2)
+    elif section_type == "risks":
+        # Warning/Alert Triangle
+        pdf.set_draw_color(*PDFTheme.COLOR_PRIMARY)
+        pdf.set_line_width(0.4)
+        p1 = (x + size/2, y)
+        p2 = (x, y + size)
+        p3 = (x + size, y + size)
+        pdf.line(p1[0], p1[1], p2[0], p2[1])
+        pdf.line(p2[0], p2[1], p3[0], p3[1])
+        pdf.line(p3[0], p3[1], p1[0], p1[1])
+        pdf.set_line_width(0.5)
+        pdf.line(x + size/2, y + 1.2, x + size/2, y + size - 1.5)
+        pdf.circle(x + size/2, y + size - 0.8, 0.2)
+    elif section_type == "timeline":
+        # Calendar Grid
+        pdf.set_draw_color(*PDFTheme.COLOR_PRIMARY)
+        pdf.set_line_width(0.4)
+        pdf.rect(x, y + 0.8, size, size - 0.8, "D")
+        pdf.line(x, y + 1.8, x + size, y + 1.8)
+        pdf.line(x + size/3, y, x + size/3, y + 0.8)
+        pdf.line(x + 2*size/3, y, x + 2*size/3, y + 0.8)
+    elif section_type == "metrics":
+        # Bar Chart Graph
+        pdf.set_draw_color(*PDFTheme.COLOR_PRIMARY)
+        pdf.set_line_width(0.4)
+        pdf.line(x, y, x, y + size)
+        pdf.line(x, y + size, x + size, y + size)
+        pdf.set_line_width(0.6)
+        pdf.line(x + 1.2, y + size, x + 1.2, y + size - 2.0)
+        pdf.line(x + 2.4, y + size, x + 2.4, y + size - 3.2)
+        pdf.line(x + 3.6, y + size, x + 3.6, y + size - 1.2)
+    elif section_type == "deliverables":
+        # Checklist Square with Tick
+        pdf.set_draw_color(*PDFTheme.COLOR_PRIMARY)
+        pdf.set_line_width(0.4)
+        pdf.rect(x, y + 0.2, size - 0.4, size - 0.4, "D")
+        pdf.set_line_width(0.5)
+        pdf.line(x + 0.8, y + size/2, x + size/2.5, y + size - 1.2)
+        pdf.line(x + size/2.5, y + size - 1.2, x + size - 1.0, y + 1.0)
+    elif section_type == "assumptions":
+        # Overlapping Rectangles (Layers)
+        pdf.set_draw_color(*PDFTheme.COLOR_PRIMARY)
+        pdf.set_line_width(0.4)
+        pdf.rect(x, y + 1.2, size - 1.2, size - 1.2, "D")
+        pdf.rect(x + 1.2, y, size - 1.2, size - 1.2, "D")
+
+
+# ---------------- ACCORDION PHASE CARDS ----------------
+def draw_phase_card(pdf, phase_title, lines):
+    """Draw a clean, consulting-grade Phase banner card for timelines."""
+    # Measure line wraps to calculate total card body height
+    pdf.set_font(PDFTheme.FONT_FAMILY, "", 9)
+    w_content = pdf.epw - 12  # Padding margin space
+    
+    total_lines = 0
+    for line in lines:
+        stripped = line.strip().replace('**', '').replace('*', '')
+        # Check if line contains a sub-label
+        parts = re.split(r'^(\*?\*?Objective:\*?\*?|\*?\*?Deliverables:\*?\*?|\*?\*?Timeline:\*?\*?|\*?\*?Budget:\*?\*?)', stripped, flags=re.IGNORECASE)
+        if len(parts) >= 3:
+            stripped = f"{parts[1].strip()} {parts[2].strip()}"
+        l_wrap = len(pdf.multi_cell(w_content, 4.5, _to_latin1(stripped), dry_run=True, output="LINES"))
+        total_lines += l_wrap
+        
+    body_h = (total_lines * 4.5) + (len(lines) - 1) * 2 + 8
+    total_h = 8 + body_h
+    
+    # Check page break boundary
+    pdf.check_page_break(total_h + 6)
+    
+    x = pdf.get_x()
+    y = pdf.get_y()
+    w = pdf.epw
+    
+    # Draw dark forest green header banner
+    pdf.set_fill_color(*PDFTheme.COLOR_PRIMARY)
+    pdf.rect(x, y, w, 8, "F")
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font(PDFTheme.FONT_FAMILY, "B", 9.5)
+    pdf.set_xy(x + 4, y + 2)
+    pdf.cell(w - 8, 4, _to_latin1(phase_title.upper()))
+    
+    # Draw soft gray-green body fill (#F4F6F4)
+    pdf.set_fill_color(*PDFTheme.COLOR_TABLE_CELL_FILL_EVEN)
+    pdf.rect(x, y + 8, w, body_h, "F")
+    
+    # Draw thin divider border
+    pdf.set_draw_color(*PDFTheme.COLOR_DIVIDER)
+    pdf.set_line_width(0.3)
+    pdf.rect(x, y, w, total_h, "D")
+    
+    current_y = y + 12
+    for line in lines:
+        pdf.set_xy(x + 4, current_y)
+        stripped = line.strip()
+        
+        # Highlight sub-labels
+        parts = re.split(r'^(\*?\*?Objective:\*?\*?|\*?\*?Deliverables:\*?\*?|\*?\*?Timeline:\*?\*?|\*?\*?Budget:\*?\*?)', stripped, flags=re.IGNORECASE)
+        if len(parts) >= 3:
+            label = parts[1].replace('**', '').replace('*', '').strip()
+            val = parts[2].strip()
+            
+            pdf.set_font(PDFTheme.FONT_FAMILY, "B", 9)
+            pdf.set_text_color(*PDFTheme.COLOR_PRIMARY)
+            pdf.write(4.5, _to_latin1(f"{label} "))
+            
+            pdf.set_font(PDFTheme.FONT_FAMILY, "", 9)
+            pdf.set_text_color(*PDFTheme.COLOR_TEXT)
+            pdf.multi_cell(w - 20, 4.5, _to_latin1(val), markdown=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        else:
+            pdf.set_font(PDFTheme.FONT_FAMILY, "", 9)
+            pdf.set_text_color(*PDFTheme.COLOR_TEXT)
+            pdf.multi_cell(w - 8, 4.5, _to_latin1(stripped.replace('**', '').replace('*', '')), markdown=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            
+        current_y = pdf.get_y() + 2
+        
+    pdf.set_y(y + total_h + 4)
+
+
+# ---------------- SHADED BRIEFING PANEL (EXECUTIVE SUMMARY) ----------------
+def render_executive_summary_panel(pdf, blocks):
+    """Render the collected executive summary content in a single beautifully shaded panel with a left green accent spine."""
+    lines = []
+    for b in blocks:
+        if b["type"] == "paragraph":
+            lines.extend([l.strip() for l in b["content"].split("\n") if l.strip()])
+        elif b["type"] == "list":
+            items = parse_list_items(b["content"])
+            for item in items:
+                prefix = f"{item['marker']}. " if item["is_number"] else "\x95 "
+                lines.append(f"{prefix}{item['text']}")
+                
+    if not lines:
+        return
+        
+    pdf.set_font(PDFTheme.FONT_FAMILY, "I", 10.5)
+    w_content = pdf.epw - 12
+    
+    total_lines = 0
+    for line in lines:
+        l_wrap = len(pdf.multi_cell(w_content, 5.5, _to_latin1(line), dry_run=True, output="LINES"))
+        total_lines += l_wrap
+        
+    box_h = (total_lines * 5.5) + (len(lines) - 1) * 2 + 8
+    
+    # Check page overflow
+    pdf.check_page_break(box_h + 6)
+    
+    x = pdf.get_x()
+    y = pdf.get_y()
+    w = pdf.epw
+    
+    # Draw soft light sage background (#EDF3EF)
+    pdf.set_fill_color(237, 243, 239)
+    pdf.rect(x, y, w, box_h, "F")
+    
+    # Draw left Forest Green accent strip (2mm)
+    pdf.set_fill_color(*PDFTheme.COLOR_PRIMARY)
+    pdf.rect(x, y, 2.0, box_h, "F")
+    
+    # Draw thin divider line
+    pdf.set_draw_color(*PDFTheme.COLOR_DIVIDER)
+    pdf.set_line_width(0.3)
+    pdf.rect(x, y, w, box_h, "D")
+    
+    current_y = y + 4
+    for line in lines:
+        pdf.set_xy(x + 6, current_y)
+        
+        if line.startswith("\x95 "):
+            pdf.set_font(PDFTheme.FONT_FAMILY, "B", 10.5)
+            pdf.set_text_color(*PDFTheme.COLOR_PRIMARY)
+            pdf.write(5.5, _to_latin1("\x95  "))
+            pdf.set_font(PDFTheme.FONT_FAMILY, "I", 10.5)
+            pdf.set_text_color(*PDFTheme.COLOR_TEXT)
+            pdf.multi_cell(w_content - 4, 5.5, _to_latin1(line[2:]), markdown=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        elif re.match(r'^\d+\.\s+', line):
+            m = re.match(r'^(\d+\.)\s+(.+)', line)
+            prefix = m.group(1)
+            body = m.group(2)
+            pdf.set_font(PDFTheme.FONT_FAMILY, "B", 10.5)
+            pdf.set_text_color(*PDFTheme.COLOR_PRIMARY)
+            pdf.write(5.5, _to_latin1(f"{prefix}  "))
+            pdf.set_font(PDFTheme.FONT_FAMILY, "I", 10.5)
+            pdf.set_text_color(*PDFTheme.COLOR_TEXT)
+            pdf.multi_cell(w_content - 6, 5.5, _to_latin1(body), markdown=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        else:
+            pdf.set_font(PDFTheme.FONT_FAMILY, "I", 10.5)
+            pdf.set_text_color(*PDFTheme.COLOR_TEXT)
+            pdf.multi_cell(w_content, 5.5, _to_latin1(line), markdown=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            
+        current_y = pdf.get_y() + 2
+        
+    pdf.set_y(y + box_h + 6)
+
+
+# ---------------- SHADED CALLOUT PANEL (OBJECTIVES / CALLOUTS) ----------------
+def render_callout_box(pdf, text, border_color, fill_color, text_style=""):
+    """Render a clean shaded box with a left accent border for general callouts."""
+    pdf.set_font(PDFTheme.FONT_FAMILY, text_style, 10)
+    w_content = pdf.epw - 12
+    l_wrap = len(pdf.multi_cell(w_content, 5.5, _to_latin1(text), dry_run=True, output="LINES"))
+    box_h = (l_wrap * 5.5) + 8
+    
+    pdf.check_page_break(box_h + 6)
+    
+    x = pdf.get_x()
+    y = pdf.get_y()
+    w = pdf.epw
+    
+    # Background fill
+    pdf.set_fill_color(*fill_color)
+    pdf.rect(x, y, w, box_h, "F")
+    
+    # Left border
+    pdf.set_fill_color(*border_color)
+    pdf.rect(x, y, 1.5, box_h, "F")
+    
+    # Thin outer border
+    pdf.set_draw_color(*PDFTheme.COLOR_DIVIDER)
+    pdf.set_line_width(0.3)
+    pdf.rect(x, y, w, box_h, "D")
+    
+    # Text
+    pdf.set_xy(x + 5, y + 4)
+    pdf.set_font(PDFTheme.FONT_FAMILY, text_style, 10)
+    pdf.set_text_color(*PDFTheme.COLOR_TEXT)
+    pdf.multi_cell(w_content, 5.5, _to_latin1(text), markdown=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    
+    pdf.set_y(y + box_h + 4)
+
+
+# ---------------- RISK MATRIX RENDERER ----------------
+def render_risks_table(pdf, block_content):
+    """Convert risk bullets into a professional two-column mitigating table."""
+    items = parse_list_items(block_content)
+    table_rows = [["Risk Event / Vulnerability", "Mitigation Strategy"]]
+    
+    for item in items:
+        text = item["text"]
+        parts = re.split(r'(?i)(?:Mitigation|Response):\s*', text)
+        if len(parts) >= 2:
+            risk_desc = parts[0].strip().rstrip('.')
+            mitigation_desc = parts[1].strip()
+            table_rows.append([risk_desc, mitigation_desc])
+        else:
+            table_rows.append([text, "Implement standard continuous verification check."])
+            
+    # Set up headings Face
+    from fpdf.fonts import FontFace
+    heading_face = FontFace(
+        fill_color=PDFTheme.COLOR_TABLE_HEADER_FILL,
+        color=PDFTheme.COLOR_TABLE_HEADER_TEXT,
+        emphasis="B"
+    )
+    pdf.set_font(PDFTheme.FONT_FAMILY, "", 8.5)
+    col_widths = [pdf.epw * 0.45, pdf.epw * 0.55]
+    
+    pdf.check_page_break(len(table_rows) * 11 + 10)
+    
+    pdf.set_draw_color(*PDFTheme.COLOR_TABLE_BORDER)
+    pdf.set_line_width(0.2)
+    pdf.set_fill_color(*PDFTheme.COLOR_TABLE_CELL_FILL_EVEN)
+    with pdf.table(
+        rows=table_rows,
+        align="CENTER",
+        v_align="MIDDLE",
+        padding=2.5,
+        markdown=False,
+        col_widths=col_widths,
+        cell_fill_color=PDFTheme.COLOR_TABLE_CELL_FILL_EVEN,
+        cell_fill_mode="EVEN_ROWS",
+        headings_style=heading_face,
+        min_row_height=8.0
+    ) as table:
+        pass
+        
+    pdf.set_font(PDFTheme.FONT_FAMILY, "", PDFTheme.SIZE_BODY)
+    pdf.ln(4)
+
+
+# ---------------- CHECKBOX BULLETS DRAWING ----------------
+def draw_checkbox(pdf, x, y, checked=False, size=3.2):
+    """Draw a vector checklist square box."""
+    pdf.set_draw_color(*PDFTheme.COLOR_PRIMARY)
+    pdf.set_line_width(0.4)
+    pdf.rect(x, y, size, size, "D")
+    if checked:
+        pdf.set_fill_color(*PDFTheme.COLOR_PRIMARY)
+        pdf.rect(x + 0.6, y + 0.6, size - 1.2, size - 1.2, "F")
+
+
+# ---------------- SEMANTIC PARSING UTILITIES ----------------
+def parse_markdown_to_blocks(content: str):
+    """Group lines into logical markdown block objects."""
+    content = content.replace("\r\n", "\n")
+    raw_lines = content.split("\n")
+    
+    blocks = []
+    current_block_type = None
+    current_block_lines = []
+    
+    def flush_block():
+        nonlocal current_block_type, current_block_lines
+        if not current_block_lines:
+            return
+        block_text = "\n".join(current_block_lines)
+        if current_block_type == "table":
+            blocks.append({"type": "table", "content": block_text})
+        elif current_block_type == "list":
+            blocks.append({"type": "list", "content": block_text})
+        elif current_block_type == "blockquote":
+            blocks.append({"type": "blockquote", "content": block_text})
+        else:
+            stripped = block_text.strip()
+            if stripped.startswith("#"):
+                level = len(stripped) - len(stripped.lstrip('#'))
+                blocks.append({"type": "heading", "content": stripped, "level": level})
+            else:
+                blocks.append({"type": "paragraph", "content": block_text})
+        current_block_lines = []
+        current_block_type = None
+
+    for line in raw_lines:
+        line_stripped = line.strip()
+        if not line_stripped:
+            flush_block()
+            continue
+            
+        if line_stripped.startswith("|") and line_stripped.endswith("|"):
+            if current_block_type != "table":
+                flush_block()
+                current_block_type = "table"
+            current_block_lines.append(line_stripped)
+        elif line_stripped.startswith(">"):
+            if current_block_type != "blockquote":
+                flush_block()
+                current_block_type = "blockquote"
+            current_block_lines.append(line_stripped)
+        elif (re.match(r'^([-*+])\s+', line_stripped) or 
+              re.match(r'^\d+\.\s+', line_stripped) or
+              re.match(r'^\s+([-*+])\s+', line) or
+              re.match(r'^\s+\d+\.\s+', line)):
+            if current_block_type != "list":
+                flush_block()
+                current_block_type = "list"
+            current_block_lines.append(line)
+        elif line_stripped.startswith("#"):
+            flush_block()
+            current_block_lines.append(line_stripped)
+            flush_block()
+        else:
+            if current_block_type in ["table", "list", "blockquote", "heading"]:
+                flush_block()
+            current_block_type = "paragraph"
+            current_block_lines.append(line)
+            
+    flush_block()
+    return blocks
+
+
+def parse_list_items(block_text: str):
+    """Convert a raw list block into typed structured list items."""
+    items = []
+    lines = block_text.split("\n")
+    for line in lines:
+        if not line.strip():
+            continue
+        indent_spaces = len(line) - len(line.lstrip())
+        level = indent_spaces // 2
+        line_clean = line.strip()
+        
+        num_match = re.match(r'^(\d+)[.)]\s+(.+)', line_clean)
+        bullet_match = re.match(r'^([-*+])\s+(.+)', line_clean)
+        
+        if num_match:
+            marker, text = num_match.groups()
+            is_number = True
+        elif bullet_match:
+            marker, text = bullet_match.groups()
+            is_number = False
+        else:
+            marker, text = "-", line_clean
+            is_number = False
+            
+        checked = False
+        is_checkbox = False
+        if text.startswith("[ ]"):
+            is_checkbox = True
+            checked = False
+            text = text[3:].strip()
+        elif text.startswith("[x]") or text.startswith("[X]"):
+            is_checkbox = True
+            checked = True
+            text = text[3:].strip()
+            
+        items.append({
+            "text": text,
+            "marker": marker,
+            "is_number": is_number,
+            "is_checkbox": is_checkbox,
+            "checked": checked,
+            "level": level
+        })
+    return items
+
+
+def get_semantic_sections(content: str):
+    """Classify blocks into semantic section groupings."""
+    blocks = parse_markdown_to_blocks(content)
+    current_section_type = "standard"
+    sections = []
+    
+    for block in blocks:
+        b_type = block["type"]
+        b_content = block["content"]
+        
+        if b_type == "heading":
+            h_text = b_content.lstrip("#").strip().replace("**", "").replace("*", "")
+            h_lower = h_text.lower()
+            
+            if "executive summary" in h_lower or "briefing" in h_lower:
+                current_section_type = "executive_summary"
+            elif "objective" in h_lower or "target" in h_lower or "goal" in h_lower:
+                current_section_type = "objectives"
+            elif "recommendation" in h_lower or "strategy" in h_lower:
+                current_section_type = "recommendations"
+            elif "risk" in h_lower or "threat" in h_lower or "mitigation" in h_lower:
+                current_section_type = "risks"
+            elif "assumption" in h_lower or "premise" in h_lower:
+                current_section_type = "assumptions"
+            elif "deliverable" in h_lower or "scope" in h_lower:
+                current_section_type = "deliverables"
+            elif "timeline" in h_lower or "roadmap" in h_lower or "schedule" in h_lower or "phases" in h_lower:
+                current_section_type = "timeline"
+            elif "metric" in h_lower or "kpi" in h_lower or "roi" in h_lower or "success" in h_lower:
+                current_section_type = "metrics"
+            else:
+                if block.get("level", 2) < 3:
+                    current_section_type = "standard"
+                
+            sections.append({
+                "type": "heading",
+                "content": h_text,
+                "level": len(b_content) - len(b_content.lstrip("#")),
+                "section_type": current_section_type
+            })
+        else:
+            sections.append({
+                "type": b_type,
+                "content": b_content,
+                "section_type": current_section_type
+            })
+            
+    return sections
+
+
+# ---------------- MAIN PDF EXPORT PIPELINE ----------------
 def _generate_pdf(filepath: Path, title: str, document_type: str, assumptions: list[str], content: str, goal: str, filename: str) -> str:
     import time
     from app.config import DEBUG_TIMING
@@ -348,7 +825,7 @@ def _generate_pdf(filepath: Path, title: str, document_type: str, assumptions: l
         
     gen_date = datetime.now().strftime("%B %d, %Y")
     
-    # Heuristically clean/extract the document title from content H1 if present
+    # Clean H1 title if present
     extracted_title = ""
     for line in content.split('\n'):
         line_strip = line.strip()
@@ -362,7 +839,6 @@ def _generate_pdf(filepath: Path, title: str, document_type: str, assumptions: l
     if extracted_title:
         title = extracted_title
     else:
-        # Fallback to cleaning up the passed title
         clean_type = document_type.replace('_', ' ').title()
         if len(title) > 60 or "." in title or "," in title:
             lower_title = title.lower()
@@ -381,427 +857,229 @@ def _generate_pdf(filepath: Path, title: str, document_type: str, assumptions: l
                 
     pdf = PDF(doc_title=title, doc_type=document_type, gen_date=gen_date)
     pdf.set_margins(PDFTheme.MARGIN_LEFT, PDFTheme.MARGIN_TOP, PDFTheme.MARGIN_RIGHT)
-    
-    # Set slightly smaller bottom margin for better page balance
     pdf.set_auto_page_break(auto=True, margin=22.0)
     
-    # ---------------- COVER PAGE (PREMIUM LIGHT PALETTE) ----------------
+    # ---------------- 1. MCKINSEY-STYLE COVER PAGE ----------------
     pdf.add_page()
-    # Temporarily disable auto page breaks to prevent any unexpected page split
     pdf.set_auto_page_break(auto=False)
     
-    # Soft powder blue background fill (#EAF1F8 / 234, 241, 248)
-    pdf.set_fill_color(234, 241, 248)
-    pdf.rect(0, 0, pdf.w, pdf.h, "F")
+    # Solid vertical accent bar (left spine)
+    pdf.set_fill_color(*PDFTheme.COLOR_PRIMARY)
+    pdf.rect(0, 0, 16, pdf.h, "F")
     
-    # Draw a thin decorative double border around the cover page for that premium finish
-    pdf.set_draw_color(43, 76, 126) # Rich Accent Blue border (#2B4C7E)
-    pdf.set_line_width(0.5)
-    pdf.rect(12, 12, pdf.w - 24, pdf.h - 24, "D")
+    # Clean background fill for remaining page (#F4F6F4)
+    pdf.set_fill_color(244, 246, 244)
+    pdf.rect(16, 0, pdf.w - 16, pdf.h, "F")
     
-    # Adjust margins to center horizontal content
-    pdf.set_left_margin(30)
-    pdf.set_right_margin(30)
-    pdf.set_x(30)
+    # Cover page margins
+    pdf.set_left_margin(32)
+    pdf.set_right_margin(24)
+    pdf.set_x(32)
     
-    # Center vertically: start at 48mm from top
-    pdf.set_y(48)
+    # Logo Monogram & Typographic Wordmark
+    pdf.set_y(40)
+    pdf.set_fill_color(*PDFTheme.COLOR_PRIMARY)
+    pdf.rect(32, 40, 11, 11, "F")
+    pdf.set_font("helvetica", "B", 6.5)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_xy(32, 43.5)
+    pdf.cell(11, 4, "AD", align="C")
     
-    # Document Type in uppercase rich blue, centered (sans-serif)
-    pdf.set_font(PDFTheme.FONT_FAMILY, "B", 10)
-    pdf.set_text_color(43, 76, 126) # Rich Accent Blue (#2B4C7E)
-    pdf.cell(0, 8, _to_latin1(document_type.upper().replace('_', ' ')), align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.ln(3)
+    pdf.set_font("helvetica", "B", 10.5)
+    pdf.set_text_color(*PDFTheme.COLOR_PRIMARY)
+    pdf.set_xy(46, 43.5)
+    pdf.cell(100, 4, "AgentDoc AI Workspace", align="L")
     
-    # Symmetrical accent divider line centered
-    pdf.set_draw_color(43, 76, 126)
-    pdf.set_line_width(1.0)
-    line_w = 60 # width of decorative line
-    start_x = (pdf.w - line_w) / 2
-    pdf.line(start_x, pdf.get_y(), start_x + line_w, pdf.get_y())
-    pdf.ln(8)
+    # Document type uppercase
+    pdf.set_xy(32, 90)
+    pdf.set_font(PDFTheme.FONT_FAMILY, "B", 10.5)
+    pdf.set_text_color(*PDFTheme.COLOR_SECONDARY)
+    pdf.cell(0, 5, _to_latin1(document_type.upper().replace('_', ' ')), align="L")
     
-    # Document Title in Times New Roman (Serif, size 24, dark navy, centered, wrapped)
-    pdf.set_font("times", "B", 24)
-    pdf.set_text_color(26, 54, 93) # Dark Navy (#1A365D)
-    pdf.multi_cell(0, 11, _to_latin1(title), align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    # Title Serif Bold (Times New Roman)
+    pdf.set_xy(32, 98)
+    pdf.set_font("times", "B", 26)
+    pdf.set_text_color(*PDFTheme.COLOR_PRIMARY)
+    pdf.multi_cell(0, 11, _to_latin1(title), align="L")
     
-    # Accent Underline spanning Title block width
-    title_end_y = pdf.get_y()
-    pdf.set_draw_color(43, 76, 126) # Rich Accent Blue
-    pdf.set_line_width(1.2)
-    pdf.line(30, title_end_y + 4, pdf.w - 30, title_end_y + 4)
-    pdf.set_y(title_end_y + 12)
+    # Thick Forest Green divider rule
+    divider_y = pdf.get_y() + 6
+    pdf.set_draw_color(*PDFTheme.COLOR_PRIMARY)
+    pdf.set_line_width(1.5)
+    pdf.line(32, divider_y, 85, divider_y)
     
-    # Extract snapshot fields from content (optimize by checking only the first 40 lines)
-    clean_type = document_type.replace('_', ' ').title()
+    # Client Placeholder subtitle
+    pdf.set_xy(32, divider_y + 8)
+    pdf.set_font(PDFTheme.FONT_FAMILY, "I", 11)
+    pdf.set_text_color(*PDFTheme.COLOR_TEXT)
+    pdf.cell(0, 5, _to_latin1("Prepared for: Strategic Executive Stakeholders"), align="L")
     
-    # Context-appropriate defaults
-    if "proposal" in document_type.lower():
-        objective_val = "Present key strategic capabilities, project scope, and commercial terms."
-        timeline_val = "As defined in proposal phases."
-        impact_val = "Establish partnership alignment and vendor selection validation."
-    elif "technical_design" in document_type.lower():
-        objective_val = "Document system architecture, API specifications, and database schema."
-        timeline_val = "As defined in engineering roadmap."
-        impact_val = "Ensure system reliability, horizontal scalability, and developer alignment."
-    elif "project_plan" in document_type.lower():
-        objective_val = "Outline task sequences, resource allocations, milestones, and dependencies."
-        timeline_val = "As defined in project timeline."
-        impact_val = "Deliver key milestones on schedule, on budget, and within defined scope."
-    else:
-        # Fallback to Improvement Plan defaults
-        objective_val = "Diagnose onboarding friction points and implement high-impact UX fixes."
-        timeline_val = "90 Days from kickoff."
-        impact_val = "Improve user activation rate by 15-20%, driving long-term retention."
-        
-    # Dynamically parse content if available (limit to first 40 lines for speed)
-    for line in content.split('\n')[:40]:
-        line_clean = line.strip().replace('**', '').replace('*', '')
-        
-        obj_m = re.search(r'(?:Objective|Objectives):\s*(.+)', line_clean, re.IGNORECASE)
-        if obj_m and len(obj_m.group(1)) > 10:
-            objective_val = obj_m.group(1).strip()
-                
-        time_m = re.search(r'(?:Estimated Timeline|Timeline):\s*(.+)', line_clean, re.IGNORECASE)
-        if time_m:
-            timeline_val = time_m.group(1).strip()
-            
-        imp_m = re.search(r'(?:Business Impact|Expected ROI|Impact):\s*(.+)', line_clean, re.IGNORECASE)
-        if imp_m:
-            impact_val = imp_m.group(1).strip()
-            
-    # --- Helper: render content as list or paragraph ---
-    def _render_cover_content(text: str, left_x: float = 30):
-        """Render text as a numbered/bulleted list (with hanging indent) if list
-        items are detected, otherwise render as a plain paragraph."""
-        # Split into candidate items: lines starting with  1.  2.  -  *  + 
-        list_pattern = re.compile(r'^(\d+[\.\)]\s+|[-*+]\s+)')
-        lines = [l.strip() for l in text.split('\n') if l.strip()]
-        # Detect: treat as list if >= 2 lines match the pattern
-        list_lines = [l for l in lines if list_pattern.match(l)]
-        
-        content_w = pdf.w - left_x - 30  # available width
-        
-        if len(list_lines) >= 2:
-            # ---- Render as list with hanging indent ----
-            for item in lines:
-                m = list_pattern.match(item)
-                if m:
-                    prefix = m.group(1)
-                    body = item[len(prefix):]
-                else:
-                    prefix = ""
-                    body = item
-                    
-                pdf.set_x(left_x)
-                prefix_w = pdf.get_string_width(prefix) if prefix else 0
-                # Indent amount for wrapped lines (hanging indent)
-                indent = max(prefix_w + 1.5, 8)
-                
-                if prefix:
-                    pdf.set_font(PDFTheme.FONT_FAMILY, "", 10.5)
-                    pdf.set_text_color(33, 33, 33)
-                    pdf.write(5.5, _to_latin1(prefix))
-                    
-                # Body text with hanging indent
-                pdf.set_font(PDFTheme.FONT_FAMILY, "", 10.5)
-                pdf.set_text_color(33, 33, 33)
-                pdf.set_left_margin(left_x + indent)
-                pdf.multi_cell(content_w - indent, 5.5, _to_latin1(body), align="L", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-                pdf.set_left_margin(left_x)
-                pdf.ln(1.5)
-        else:
-            # ---- Check for inline numbered items: "1) ... 2) ... 3) ..." ----
-            inline_items = re.split(r'(?:^|\s)(\d+)[.)]\s+', text)
-            if len(inline_items) >= 5:
-                items = []
-                idx = 1
-                while idx + 1 < len(inline_items):
-                    num = inline_items[idx]
-                    t = inline_items[idx + 1].strip().rstrip('.')
-                    if t:
-                        items.append((num, t + '.'))
-                    idx += 2
-                
-                if len(items) >= 2:
-                    for num, item_text in items:
-                        indent = 8
-                        pdf.set_x(left_x)
-                        pdf.set_font(PDFTheme.FONT_FAMILY, "", 10.5)
-                        pdf.set_text_color(33, 33, 33)
-                        pdf.write(5.5, _to_latin1(f"{num}. "))
-                        pdf.set_left_margin(left_x + indent)
-                        pdf.multi_cell(content_w - indent, 5.5, _to_latin1(item_text), align="L", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-                        pdf.set_left_margin(left_x)
-                        pdf.ln(1.5)
-                    return
-            
-            # ---- Render as paragraph ----
-            pdf.set_x(left_x)
-            pdf.set_font(PDFTheme.FONT_FAMILY, "", 10.5)
-            pdf.set_text_color(33, 33, 33)
-            pdf.multi_cell(content_w, 5.5, _to_latin1(text), align="L", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    # Bottom metadata columns
+    pdf.set_y(232)
+    pdf.set_x(32)
+    col_w = (pdf.w - 56) / 3
     
-    # --- Full-width Objective Block (Left-aligned, bold heading) ---
-    pdf.set_font(PDFTheme.FONT_FAMILY, "B", 9.5)
-    pdf.set_text_color(43, 76, 126) # Rich Accent Blue
-    pdf.set_x(30)
-    heading_y1 = pdf.get_y()
-    heading_h1 = 6  # cell height
-    pdf.cell(0, heading_h1, _to_latin1("OBJECTIVE"), align="L", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.set_font(PDFTheme.FONT_FAMILY, "B", 7.5)
+    pdf.set_text_color(*PDFTheme.COLOR_SECONDARY)
+    pdf.cell(col_w, 4, "CLASSIFICATION", new_x=XPos.RIGHT, new_y=YPos.TOP)
+    pdf.cell(col_w, 4, "PREPARED BY", new_x=XPos.RIGHT, new_y=YPos.TOP)
+    pdf.cell(col_w, 4, "DATE OF ISSUE", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     
-    pdf.ln(3)
+    pdf.ln(1.5)
+    pdf.set_x(32)
+    pdf.set_font(PDFTheme.FONT_FAMILY, "", 9)
+    pdf.set_text_color(*PDFTheme.COLOR_PRIMARY)
+    pdf.cell(col_w, 4, "Confidential / Executive", new_x=XPos.RIGHT, new_y=YPos.TOP)
+    pdf.cell(col_w, 4, "AgentDoc Services", new_x=XPos.RIGHT, new_y=YPos.TOP)
+    pdf.cell(col_w, 4, gen_date, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     
-    _render_cover_content(objective_val)
-    pdf.ln(10)
-    
-    # --- Full-width Expected Business Impact Block (Left-aligned, bold heading) ---
-    pdf.set_font(PDFTheme.FONT_FAMILY, "B", 9.5)
-    pdf.set_text_color(43, 76, 126) # Rich Accent Blue
-    pdf.set_x(30)
-    heading_y2 = pdf.get_y()
-    heading_h2 = 6
-    pdf.cell(0, heading_h2, _to_latin1("EXPECTED BUSINESS IMPACT"), align="L", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    
-    pdf.ln(3)
-    
-    _render_cover_content(impact_val)
-    pdf.ln(10)
-    
-    # Second Divider Line above metadata
-    pdf.set_draw_color(100, 115, 140)
-    pdf.set_line_width(0.3)
-    meta_line_w = 150
-    meta_start_x = (pdf.w - meta_line_w) / 2
-    pdf.line(meta_start_x, pdf.get_y(), meta_start_x + meta_line_w, pdf.get_y())
-    pdf.ln(10)
-    
-    # --- Neat Three-Column Footer Metadata (centered headings over values) ---
-    meta_y = pdf.get_y()
-    col_w = (pdf.w - 60) / 3
-    
-    def print_footer_item(label: str, value: str, x: float, w: float, y_start: float):
-        label_upper = label.upper()
-        label_w = pdf.get_string_width(label_upper)
-        value_w = pdf.get_string_width(value)
-        
-        # Center the heading text within the column
-        label_x = x + (w - label_w) / 2
-        
-        pdf.set_y(y_start)
-        pdf.set_x(label_x)
-        # Heading: Bold, Dark Navy, size 7.5
-        pdf.set_font(PDFTheme.FONT_FAMILY, "B", 7.5)
-        pdf.set_text_color(26, 54, 93)  # Dark Navy (#1A365D)
-        pdf.cell(label_w, 4, _to_latin1(label_upper), align="L", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        
-        # (No underline — visual hierarchy achieved through bold weight and color alone)
-        
-        # Center the value text within the column
-        value_x = x + (w - value_w) / 2
-        pdf.set_y(y_start + 6.5)
-        pdf.set_x(value_x)
-        pdf.set_font(PDFTheme.FONT_FAMILY, "", 8.5)
-        pdf.set_text_color(26, 54, 93)  # Dark Navy
-        pdf.cell(value_w, 4.5, _to_latin1(value), align="L", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        
-    print_footer_item("Classification", "Confidential / Executive Ready", 30, col_w, meta_y)
-    print_footer_item("Prepared By", "AgentDoc Consulting Services", 30 + col_w, col_w, meta_y)
-    print_footer_item("Date of Issue", gen_date, 30 + 2 * col_w, col_w, meta_y)
-    
-    # Restore margins and auto page break for subsequent content pages
+    # Restore standard margins & auto breaks
     pdf.set_left_margin(PDFTheme.MARGIN_LEFT)
     pdf.set_right_margin(PDFTheme.MARGIN_RIGHT)
     pdf.set_auto_page_break(auto=True, margin=22.0)
     
-    # Add page break to start content on Page 2
+    # ---------------- 2. CONTENT PAGES (SECTIONS RENDERING) ----------------
     pdf.add_page()
     
-    # Note: We omit the 'goal' summary (Executive Summary duplicate) per user requirements.
+    # Semantic block classification
+    blocks = get_semantic_sections(content)
     
-    # Assumptions section (only if passed directly)
-    if assumptions:
+    # Step A: Collect and pre-render Executive Summary blocks at the top of content page
+    summary_blocks = [b for b in blocks if b["section_type"] == "executive_summary" and b["type"] != "heading"]
+    other_blocks = [b for b in blocks if b["section_type"] != "executive_summary" or b["type"] == "heading"]
+    
+    if summary_blocks:
         pdf.set_font(PDFTheme.FONT_FAMILY, "B", PDFTheme.SIZE_H1)
         pdf.set_text_color(*PDFTheme.COLOR_PRIMARY)
-        pdf.cell(0, PDFTheme.LEAD_H1, _to_latin1("Key Assumptions"), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        pdf.ln(2)
+        pdf.multi_cell(0, PDFTheme.LEAD_H1, _to_latin1("Executive Summary"), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.ln(3)
+        render_executive_summary_panel(pdf, summary_blocks)
         
-        for a in assumptions:
-            try:
-                pdf.check_page_break(12)
-                pdf.set_left_margin(PDFTheme.MARGIN_LEFT + 6)
-                pdf.set_x(PDFTheme.MARGIN_LEFT)
-                pdf.set_font(PDFTheme.FONT_FAMILY, "B", PDFTheme.SIZE_BODY)
-                pdf.set_text_color(*PDFTheme.COLOR_PRIMARY)
-                pdf.write(PDFTheme.LEAD_BODY, _to_latin1("\x95  "))
-                pdf.set_font(PDFTheme.FONT_FAMILY, "", PDFTheme.SIZE_BODY)
-                pdf.set_text_color(*PDFTheme.COLOR_TEXT)
-                pdf.multi_cell(0, PDFTheme.LEAD_BODY, _to_latin1(a), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-            except Exception:
-                pass
-        pdf.set_left_margin(PDFTheme.MARGIN_LEFT)
-        pdf.ln(6)
+    # Step B: Render other blocks semantically
+    idx = 0
+    while idx < len(other_blocks):
+        b = other_blocks[idx]
+        b_type = b["type"]
+        b_content = b["content"]
+        sec_type = b["section_type"]
         
-    # Content - structured Markdown to PDF
-    if DEBUG_TIMING:
-        logger.info("[INSTRUMENTATION] Markdown parsing start: timestamp=%f", time.time())
-        
-    lines = content.split('\n')
-    i = 0
-    has_added_appendix = False
-    while i < len(lines):
-        line = lines[i].strip()
-        if not line:
-            pdf.ln(1.0) # Reduced empty line spacing for better page balance
-            i += 1
+        # Skip empty blocks
+        if not b_content.strip():
+            idx += 1
             continue
             
-        # Regex heading matches
-        h1_match = re.match(r'^#\s+(.+)', line)
-        h1_alt_match = re.match(r'^##\s+(.+)', line)
-        h2_match = re.match(r'^###\s+(.+)', line)
-        h3_match = re.match(r'^####\s+(.+)', line)
-        
-        if h1_match or h1_alt_match:
-            match_obj = h1_match if h1_match else h1_alt_match
-            heading_text = match_obj.group(1).strip().replace('**', '').strip()
+        if b_type == "heading":
+            h_text = b_content
+            h_level = b["level"]
             
-            # Skip duplicate title heading at start of content
-            if i < 4 and (heading_text.lower() in title.lower() or title.lower() in heading_text.lower()):
-                i += 1
+            # Skip double printing title heading at top of content
+            if idx < 3 and (h_text.lower() in title.lower() or title.lower() in h_text.lower() or "executive summary" in h_text.lower()):
+                idx += 1
                 continue
                 
-            # Prepend Appendix A Header if we hit the first Phase description section
-            if not has_added_appendix and heading_text.lower().startswith("phase 1"):
-                has_added_appendix = True
+            if h_level == 1:
                 pdf.check_page_break(25)
+                # Section horizontal rule divider
                 if pdf.page_no() > 2 or (pdf.page_no() == 2 and pdf.get_y() > pdf.t_margin + 15):
-                    pdf.ln(4)
+                    pdf.ln(3)
                     pdf.set_draw_color(*PDFTheme.COLOR_DIVIDER)
-                    pdf.set_line_width(0.4)
+                    pdf.set_line_width(0.3)
                     pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
-                    pdf.ln(6)
+                    pdf.ln(5)
+                
+                # Draw Vector Icon next to section heading
+                icon_y = pdf.get_y() + 1.2
+                draw_heading_icon(pdf, sec_type, pdf.l_margin, icon_y, size=4.2)
+                
+                pdf.set_left_margin(PDFTheme.MARGIN_LEFT + 7.5)
+                pdf.set_x(PDFTheme.MARGIN_LEFT + 7.5)
                 pdf.set_font(PDFTheme.FONT_FAMILY, "B", PDFTheme.SIZE_H1)
                 pdf.set_text_color(*PDFTheme.COLOR_PRIMARY)
-                pdf.multi_cell(0, PDFTheme.LEAD_H1, _to_latin1("Appendix A: Detailed Phase Breakdown"), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.multi_cell(0, PDFTheme.LEAD_H1, _to_latin1(h_text), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.set_left_margin(PDFTheme.MARGIN_LEFT)
                 pdf.ln(4)
                 
-            pdf.check_page_break(25)
-            # Section divider line
-            if pdf.page_no() > 2 or (pdf.page_no() == 2 and pdf.get_y() > pdf.t_margin + 15):
-                pdf.ln(4)
-                pdf.set_draw_color(*PDFTheme.COLOR_DIVIDER)
-                pdf.set_line_width(0.4)
-                pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
-                pdf.ln(6)
+            elif h_level in [2, 3] and sec_type == "timeline" and h_text.lower().startswith("phase"):
+                # Check for Phase card timeline groupings
+                # Look ahead: if next block is a List block, combine them into a Phase Card!
+                phase_lines = []
+                if idx + 1 < len(other_blocks) and other_blocks[idx + 1]["type"] == "list":
+                    list_b = other_blocks[idx + 1]
+                    phase_lines = [l.strip() for l in list_b["content"].split("\n") if l.strip()]
+                    idx += 1 # Consume list block
+                else:
+                    phase_lines = ["Objective: Execute defined timeline roadmap steps."]
                 
-            pdf.set_font(PDFTheme.FONT_FAMILY, "B", PDFTheme.SIZE_H1)
-            pdf.set_text_color(*PDFTheme.COLOR_PRIMARY)
-            pdf.multi_cell(0, PDFTheme.LEAD_H1, _to_latin1(heading_text), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-            pdf.ln(4)
-            i += 1
-            
-        elif h2_match:
-            heading_text = h2_match.group(1).strip().replace('**', '').strip()
-            
-            # Prepend Appendix A Header if we hit the first Phase description section
-            if not has_added_appendix and heading_text.lower().startswith("phase 1"):
-                has_added_appendix = True
-                pdf.check_page_break(25)
-                if pdf.page_no() > 2 or (pdf.page_no() == 2 and pdf.get_y() > pdf.t_margin + 15):
-                    pdf.ln(4)
-                    pdf.set_draw_color(*PDFTheme.COLOR_DIVIDER)
-                    pdf.set_line_width(0.4)
-                    pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
-                    pdf.ln(6)
-                pdf.set_font(PDFTheme.FONT_FAMILY, "B", PDFTheme.SIZE_H1)
-                pdf.set_text_color(*PDFTheme.COLOR_PRIMARY)
-                pdf.multi_cell(0, PDFTheme.LEAD_H1, _to_latin1("Appendix A: Detailed Phase Breakdown"), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-                pdf.ln(4)
+                draw_phase_card(pdf, h_text, phase_lines)
+                idx += 1
+                continue
                 
-            pdf.check_page_break(20)
-            pdf.set_font(PDFTheme.FONT_FAMILY, "B", PDFTheme.SIZE_H2)
-            pdf.set_text_color(*PDFTheme.COLOR_SECONDARY)
-            pdf.multi_cell(0, PDFTheme.LEAD_H2, _to_latin1(heading_text), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-            pdf.ln(3)
-            i += 1
-            
-        elif h3_match:
-            heading_text = h3_match.group(1).strip().replace('**', '').strip()
-            pdf.check_page_break(15)
-            pdf.set_font(PDFTheme.FONT_FAMILY, "B", PDFTheme.SIZE_H3)
-            pdf.set_text_color(*PDFTheme.COLOR_SECONDARY)
-            pdf.multi_cell(0, PDFTheme.LEAD_H3, _to_latin1(heading_text), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-            pdf.ln(2)
-            i += 1
-            
-        # Parse Lists (bullets and numbered)
-        elif (re.match(r'^([-*+])\s+(.+)', line) or 
-              re.match(r'^(\d+)\.\s+(.+)', line) or 
-              re.match(r'^(\s+)([-*+])\s+(.+)', line) or 
-              re.match(r'^(\s+)(\d+)\.\s+(.+)', line)):
-            
-            indent = ""
-            is_bullet = False
-            is_number = False
-            marker = ""
-            list_text = ""
-            
-            m = re.match(r'^(\s*)([-*+])\s+(.+)', line)
-            if m and m.group(2) in ['-', '*', '+']:
-                indent, marker, list_text = m.groups()
-                is_bullet = True
+            elif h_level == 2:
+                pdf.check_page_break(18)
+                pdf.set_font(PDFTheme.FONT_FAMILY, "B", PDFTheme.SIZE_H2)
+                pdf.set_text_color(*PDFTheme.COLOR_SECONDARY)
+                pdf.multi_cell(0, PDFTheme.LEAD_H2, _to_latin1(h_text), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.ln(3)
+                
             else:
-                m = re.match(r'^(\s*)(\d+)\.\s+(.+)', line)
-                if m:
-                    indent, marker, list_text = m.groups()
-                    is_number = True
-            
-            if is_bullet or is_number:
-                indent_level = len(indent) // 2
-                base_margin = PDFTheme.MARGIN_LEFT
-                list_indent = base_margin + (indent_level * 6) + 6
-                marker_pos = base_margin + (indent_level * 6)
+                pdf.check_page_break(14)
+                pdf.set_font(PDFTheme.FONT_FAMILY, "B", PDFTheme.SIZE_H3)
+                pdf.set_text_color(*PDFTheme.COLOR_SECONDARY)
+                pdf.multi_cell(0, PDFTheme.LEAD_H3, _to_latin1(h_text), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.ln(2.5)
                 
-                pdf.check_page_break(12)
+        elif b_type == "list":
+            # Semantic risks matrix redirection
+            if sec_type == "risks":
+                render_risks_table(pdf, b_content)
+                idx += 1
+                continue
+                
+            items = parse_list_items(b_content)
+            for item in items:
+                pdf.check_page_break(11)
+                
+                # Dynamic list item indentation
+                list_indent = PDFTheme.MARGIN_LEFT + (item["level"] * 6) + 6
+                marker_pos = PDFTheme.MARGIN_LEFT + (item["level"] * 6)
+                
                 pdf.set_left_margin(list_indent)
                 pdf.set_x(marker_pos)
                 
-                pdf.set_font(PDFTheme.FONT_FAMILY, "B", PDFTheme.SIZE_BODY)
-                pdf.set_text_color(*PDFTheme.COLOR_PRIMARY)
-                if is_bullet:
-                    pdf.write(PDFTheme.LEAD_BODY, _to_latin1("\x95  "))
+                if item["is_checkbox"] or sec_type in ["assumptions", "deliverables"]:
+                    # Draw visual square checklist box
+                    draw_checkbox(pdf, marker_pos, pdf.get_y() + 1.2, checked=item["checked"] or sec_type == "deliverables", size=3.2)
+                    pdf.set_x(list_indent)
                 else:
-                    pdf.write(PDFTheme.LEAD_BODY, _to_latin1(f"{marker}. "))
-                    
+                    pdf.set_font(PDFTheme.FONT_FAMILY, "B", PDFTheme.SIZE_BODY)
+                    pdf.set_text_color(*PDFTheme.COLOR_PRIMARY)
+                    if item["is_number"]:
+                        pdf.write(PDFTheme.LEAD_BODY, _to_latin1(f"{item['marker']}. "))
+                    else:
+                        pdf.write(PDFTheme.LEAD_BODY, _to_latin1("\x95  "))
+                        
                 pdf.set_font(PDFTheme.FONT_FAMILY, "", PDFTheme.SIZE_BODY)
                 pdf.set_text_color(*PDFTheme.COLOR_TEXT)
-                pdf.multi_cell(0, PDFTheme.LEAD_BODY, _to_latin1(list_text), markdown=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-                pdf.set_left_margin(base_margin)
+                pdf.multi_cell(0, PDFTheme.LEAD_BODY, _to_latin1(item["text"]), markdown=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.set_left_margin(PDFTheme.MARGIN_LEFT)
                 pdf.ln(1)
-            else:
-                pdf.check_page_break(12)
-                pdf.set_font(PDFTheme.FONT_FAMILY, "", PDFTheme.SIZE_BODY)
-                pdf.set_text_color(*PDFTheme.COLOR_TEXT)
-                pdf.multi_cell(0, PDFTheme.LEAD_BODY, _to_latin1(line), markdown=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-                pdf.ln(2)
-            i += 1
-            
-        # Parse Tables
-        elif line.startswith('|') and line.endswith('|'):
-            table_rows = []
-            while i < len(lines) and lines[i].strip().startswith('|') and lines[i].strip().endswith('|'):
-                row_line = lines[i].strip()
-                if not re.match(r'^\|[\s\-:|]+\|$', row_line):
-                    cells = [c.strip() for c in row_line.strip('|').split('|')]
-                    if cells and cells[0] == "":
-                        cells = cells[1:]
-                    if cells and cells[-1] == "":
-                        cells = cells[:-1]
-                    table_rows.append(cells)
-                i += 1
                 
+            pdf.ln(2)
+            
+        elif b_type == "table":
+            # Standard Markdown Table parser
+            table_rows = []
+            for row_line in b_content.split("\n"):
+                row_line = row_line.strip()
+                if row_line.startswith("|") and row_line.endswith("|"):
+                    if not re.match(r'^\|[\s\-:|]+\|$', row_line):
+                        cells = [c.strip() for c in row_line.strip("|").split("|")]
+                        if cells and cells[0] == "":
+                            cells = cells[1:]
+                        if cells and cells[-1] == "":
+                            cells = cells[:-1]
+                        table_rows.append(cells)
+            
             if table_rows:
                 try:
                     from fpdf.fonts import FontFace
@@ -820,12 +1098,11 @@ def _generate_pdf(filepath: Path, title: str, document_type: str, assumptions: l
                             cleaned_row.append(cell_cleaned)
                         cleaned_rows.append(cleaned_row)
                         
-                    # Set font to 8.5 for exact width calculations and rendering density
                     pdf.set_font(PDFTheme.FONT_FAMILY, "", 8.5)
                     pdf.set_text_color(*PDFTheme.COLOR_TEXT)
                     
                     num_cols = len(cleaned_rows[0])
-                    cell_padding = 2.0
+                    cell_padding = 2.5
                     
                     col_max_widths = [0.0] * num_cols
                     col_max_word_widths = [0.0] * num_cols
@@ -834,46 +1111,43 @@ def _generate_pdf(filepath: Path, title: str, document_type: str, assumptions: l
                             if col_idx < num_cols:
                                 str_w = pdf.get_string_width(cell)
                                 col_max_widths[col_idx] = max(col_max_widths[col_idx], str_w)
-                                
                                 words = cell.split()
                                 word_w = max(pdf.get_string_width(w) for w in words) if words else 0.0
                                 col_max_word_widths[col_idx] = max(col_max_word_widths[col_idx], word_w)
-                    
+                                
                     total_text_w = sum(col_max_widths)
                     usable_width = pdf.epw
                     
                     if total_text_w > 0:
                         col_widths = [(w / total_text_w) * usable_width for w in col_max_widths]
-                        
-                        # Apply minimum widths based on longest word and layout bounds
-                        for idx in range(num_cols):
-                            word_limit = col_max_word_widths[idx] + (2 * cell_padding) + 1.0 # 1mm safety margin
+                        for col_i in range(num_cols):
+                            word_limit = col_max_word_widths[col_i] + (2 * cell_padding) + 1.0
                             hard_min = max(25.0, usable_width * 0.12)
                             col_min = max(word_limit, hard_min)
-                            if col_widths[idx] < col_min:
-                                col_widths[idx] = col_min
-                        
+                            if col_widths[col_i] < col_min:
+                                col_widths[col_i] = col_min
                         total_w = sum(col_widths)
                         if total_w > usable_width:
                             col_widths = [(w / total_w) * usable_width for w in col_widths]
                         else:
                             remaining = usable_width - total_w
                             if remaining > 0:
-                                col_widths = [w + (col_max_widths[idx] / total_text_w) * remaining for idx, w in enumerate(col_widths)]
+                                col_widths = [w + (col_max_widths[col_i] / total_text_w) * remaining for col_i, w in enumerate(col_widths)]
                     else:
                         col_widths = None
                         
-                    estimated_height = len(cleaned_rows) * 10
+                    estimated_height = len(cleaned_rows) * 11
                     pdf.check_page_break(estimated_height if estimated_height < 60 else 30)
                     
                     pdf.set_draw_color(*PDFTheme.COLOR_TABLE_BORDER)
                     pdf.set_line_width(0.2)
+                    pdf.set_fill_color(*PDFTheme.COLOR_TABLE_CELL_FILL_EVEN)
                     with pdf.table(
                         rows=cleaned_rows,
                         align="CENTER",
                         v_align="MIDDLE",
                         padding=cell_padding,
-                        markdown=False, # Disable markdown to respect headings_style white text color
+                        markdown=False,
                         col_widths=col_widths,
                         cell_fill_color=PDFTheme.COLOR_TABLE_CELL_FILL_EVEN,
                         cell_fill_mode="EVEN_ROWS",
@@ -882,74 +1156,54 @@ def _generate_pdf(filepath: Path, title: str, document_type: str, assumptions: l
                     ) as table:
                         pass
                     
-                    # Restore body font size
                     pdf.set_font(PDFTheme.FONT_FAMILY, "", PDFTheme.SIZE_BODY)
-                    pdf.ln(PDFTheme.LEAD_BODY)
+                    pdf.ln(4)
                 except Exception as ex:
                     logger.error("Error rendering table to PDF: %s", ex)
                     
-        # Parse standard paragraph (with inline numbered-list detection)
+        elif b_type == "blockquote":
+            # Clean blockquote marker '>'
+            text = b_content.lstrip(">").strip()
+            render_callout_box(pdf, text, PDFTheme.COLOR_SECONDARY, (244, 246, 244), text_style="I")
+            
         else:
-            pdf.check_page_break(12)
-            
-            # Detect inline numbered lists: "1) ... 2) ... 3) ..." or "1. ... 2. ... 3. ..."
-            # Pattern: 2+ numbered items embedded in a single line
-            inline_items = re.split(r'(?:^|\s)(\d+)[.)]\s+', line)
-            # re.split with group produces: [before, num1, text1, num2, text2, ...]
-            # If we get >= 5 parts (before + at least 2 numbered items), it's an inline list
-            if len(inline_items) >= 5:
-                # Build clean list of (number, text) pairs
-                items = []
-                idx = 1  # skip the part before the first number
-                while idx + 1 < len(inline_items):
-                    num = inline_items[idx]
-                    text = inline_items[idx + 1].strip().rstrip('.')
-                    if text:
-                        items.append((num, text + '.'))
-                    idx += 2
+            # Semantic Objectives Redirect
+            if sec_type == "objectives" and len(b_content) > 30:
+                render_callout_box(pdf, b_content, PDFTheme.COLOR_PRIMARY, (244, 246, 244))
+                idx += 1
+                continue
                 
-                if len(items) >= 2:
-                    # Render as a proper vertical numbered list
-                    base_margin = PDFTheme.MARGIN_LEFT
-                    list_indent = base_margin + 6
-                    
-                    for num, item_text in items:
-                        pdf.check_page_break(12)
-                        pdf.set_left_margin(list_indent)
-                        pdf.set_x(base_margin)
-                        
-                        pdf.set_font(PDFTheme.FONT_FAMILY, "B", PDFTheme.SIZE_BODY)
-                        pdf.set_text_color(*PDFTheme.COLOR_PRIMARY)
-                        pdf.write(PDFTheme.LEAD_BODY, _to_latin1(f"{num}. "))
-                        
-                        pdf.set_font(PDFTheme.FONT_FAMILY, "", PDFTheme.SIZE_BODY)
-                        pdf.set_text_color(*PDFTheme.COLOR_TEXT)
-                        pdf.multi_cell(0, PDFTheme.LEAD_BODY, _to_latin1(item_text), markdown=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-                        pdf.set_left_margin(base_margin)
-                        pdf.ln(1)
-                    
-                    pdf.ln(2)
-                    i += 1
-                    continue
+            # Paragraph Block Rendering
+            lines = [l.strip() for l in b_content.split("\n") if l.strip()]
+            for line in lines:
+                pdf.check_page_break(12)
+                
+                # Check for inline bullet formatting
+                if line.startswith("- ") or line.startswith("* "):
+                    pdf.set_left_margin(PDFTheme.MARGIN_LEFT + 6)
+                    pdf.set_x(PDFTheme.MARGIN_LEFT)
+                    pdf.set_font(PDFTheme.FONT_FAMILY, "B", PDFTheme.SIZE_BODY)
+                    pdf.set_text_color(*PDFTheme.COLOR_PRIMARY)
+                    pdf.write(PDFTheme.LEAD_BODY, _to_latin1("\x95  "))
+                    pdf.set_font(PDFTheme.FONT_FAMILY, "", PDFTheme.SIZE_BODY)
+                    pdf.set_text_color(*PDFTheme.COLOR_TEXT)
+                    pdf.multi_cell(0, PDFTheme.LEAD_BODY, _to_latin1(line[2:]), markdown=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                    pdf.set_left_margin(PDFTheme.MARGIN_LEFT)
+                    pdf.ln(1)
+                else:
+                    pdf.set_font(PDFTheme.FONT_FAMILY, "", PDFTheme.SIZE_BODY)
+                    pdf.set_text_color(*PDFTheme.COLOR_TEXT)
+                    pdf.multi_cell(0, PDFTheme.LEAD_BODY, _to_latin1(line), markdown=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                    pdf.ln(2.5)
+            pdf.ln(1.5)
             
-            # Standard paragraph rendering
-            pdf.set_font(PDFTheme.FONT_FAMILY, "", PDFTheme.SIZE_BODY)
-            pdf.set_text_color(*PDFTheme.COLOR_TEXT)
-            pdf.multi_cell(0, PDFTheme.LEAD_BODY, _to_latin1(line), markdown=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-            pdf.ln(2)
-            i += 1
-            
+        idx += 1
+        
     if DEBUG_TIMING:
-        logger.info("[INSTRUMENTATION] Markdown parsing end: timestamp=%f", time.time())
         logger.info("[INSTRUMENTATION] PDF save/write start: timestamp=%f", time.time())
         
     pdf.output(str(filepath))
     
-    if DEBUG_TIMING:
-        logger.info("[INSTRUMENTATION] PDF save/write end: timestamp=%f", time.time())
-        logger.info("[INSTRUMENTATION] PDF generation function return: timestamp=%f", time.time())
-        logger.info("[INSTRUMENTATION] PDF generation end: timestamp=%f", time.time())
-        
     return filename
 
 

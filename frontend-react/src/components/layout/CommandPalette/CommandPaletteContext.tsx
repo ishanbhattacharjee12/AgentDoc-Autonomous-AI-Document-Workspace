@@ -41,6 +41,9 @@ export const CommandPaletteProvider: React.FC<{ children: React.ReactNode }> = (
     const handleKeyDown = (e: KeyboardEvent) => {
       // 1. Toggle Command Palette: Cmd/Ctrl + K
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        if ((window as any).__agentdoc_generating) {
+          return
+        }
         e.preventDefault()
         setIsOpen((prev) => !prev)
         return

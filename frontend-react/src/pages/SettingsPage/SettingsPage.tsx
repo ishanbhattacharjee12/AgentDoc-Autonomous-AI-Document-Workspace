@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { Select, SelectTrigger, SelectContent, SelectItem } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Sliders, Settings, ShieldAlert, Cpu, Sparkles, CheckCircle2 } from 'lucide-react'
 import { useSettings, type UserSettings } from '@/hooks/useSettings'
 import type { DocumentFormat, ExecutionMode } from '@/types/api'
+import { Tooltip } from '@/components/ui/tooltip'
 
 export const SettingsPage: React.FC = () => {
   const { settings, saveSettings, resetToDefaults } = useSettings()
@@ -58,12 +59,12 @@ export const SettingsPage: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col gap-6 text-left max-w-4xl">
+    <div className="flex flex-col gap-8 text-left max-w-4xl">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Settings</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Configure default formats, execution modes, human-in-the-loop policies, and advanced settings.
+          Configure default formats, execution strategies, human-in-the-loop policies, and advanced settings.
         </p>
       </div>
 
@@ -71,7 +72,7 @@ export const SettingsPage: React.FC = () => {
       <Card className="border-border shadow-sm">
         <CardHeader className="border-b border-border pb-4 bg-muted/10">
           <CardTitle className="text-base flex items-center gap-2">
-            <Settings className="h-4 w-4 text-muted-foreground" /> User Preferences
+            <Settings className="h-4 w-4 text-primary" /> User Preferences
           </CardTitle>
           <CardDescription>
             Configure default variables and options pre-populated during document generation.
@@ -82,15 +83,20 @@ export const SettingsPage: React.FC = () => {
           {/* Default Output Format */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">Default Output Format</h3>
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                Default Document Format
+                <Tooltip content="Preferred default format for newly synthesized documents." />
+              </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Preferred default format for newly synthesized documents.
               </p>
             </div>
             <div className="w-full sm:w-[220px]">
               <Select value={format} onValueChange={(val) => setFormat(val as DocumentFormat)}>
-                <SelectTrigger className="w-full bg-background">
-                  <SelectValue placeholder="Select format" />
+                <SelectTrigger className="w-full bg-background shadow-xs">
+                  {format === 'pdf' && 'PDF Document (.pdf)'}
+                  {format === 'docx' && 'Word Document (.docx)'}
+                  {format === 'md' && 'Markdown Document (.md)'}
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pdf">PDF Document (.pdf)</SelectItem>
@@ -104,15 +110,23 @@ export const SettingsPage: React.FC = () => {
           {/* Default Pipeline Mode */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">Default Pipeline Mode</h3>
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                Default Execution Strategy
+                <Tooltip 
+                  side="bottom"
+                  content={`• Standard: Fast single-pass generation. Best for simple templates.\n• Advanced: Multi-stage sequential task execution for maximum depth.\n• Adaptive: Auto-routes based on prompt complexity with error fallback.`}
+                />
+              </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Default execution depth for standard, advanced multi-agent, or adaptive runs.
               </p>
             </div>
             <div className="w-full sm:w-[220px]">
               <Select value={mode} onValueChange={(val) => setMode(val as ExecutionMode)}>
-                <SelectTrigger className="w-full bg-background">
-                  <SelectValue placeholder="Select mode" />
+                <SelectTrigger className="w-full bg-background shadow-xs">
+                  {mode === 'standard' && 'Standard Generation'}
+                  {mode === 'advanced' && 'Advanced Pipeline'}
+                  {mode === 'adaptive' && 'Adaptive Sequence'}
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="standard">Standard Generation</SelectItem>
@@ -126,7 +140,10 @@ export const SettingsPage: React.FC = () => {
           {/* Require Review Toggle */}
           <div className="flex items-center justify-between gap-4 border-b border-border pb-5">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">Always Require Plan Review</h3>
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                Always Require Plan Review
+                <Tooltip content="Pause after the planning stage so you can inspect, edit, and reorganize outline steps before generation starts." />
+              </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Pause the agent pipeline after planning to review and edit task checklists on every run.
               </p>
@@ -135,27 +152,37 @@ export const SettingsPage: React.FC = () => {
           </div>
 
           {/* Placeholder: Custom AI Writing Style */}
-          <div className="flex items-center justify-between gap-4 border-b border-border pb-5 opacity-55">
+          <div className="flex items-center justify-between gap-4 border-b border-border pb-5 opacity-40 select-none cursor-not-allowed">
             <div>
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                Custom Writing Style <Sparkles className="h-3 w-3 text-amber-500" />
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  Custom Writing Style <Sparkles className="h-3.5 w-3.5 text-amber-500/80" />
+                  <Tooltip content="Upload custom style sheets or define system instructions to align document syntax with specific branding rules." />
+                </h3>
+                <span className="text-[9px] bg-muted text-muted-foreground/80 border border-border px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-semibold select-none">Coming Soon</span>
+              </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Upload custom style sheets or define system instructions to align document syntax with specific branding rules. (Phase 3)
+                Upload custom style sheets or define system instructions to align document syntax with specific branding rules.
               </p>
             </div>
-            <Switch checked={false} disabled />
+            <Switch checked={false} disabled className="cursor-not-allowed" />
           </div>
 
           {/* Placeholder: Knowledge Glossary */}
-          <div className="flex items-center justify-between gap-4 opacity-55">
+          <div className="flex items-center justify-between gap-4 opacity-40 select-none cursor-not-allowed">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">Knowledge Context Glossary</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  Knowledge Context Glossary
+                  <Tooltip content="Provide custom business definitions, keywords, or background files to contextualize prompt reasoning." />
+                </h3>
+                <span className="text-[9px] bg-muted text-muted-foreground/80 border border-border px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-semibold select-none">Coming Soon</span>
+              </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Provide custom business definitions, keywords, or background files to contextualize prompt reasoning. (Phase 3)
+                Provide custom business definitions, keywords, or background files to contextualize prompt reasoning.
               </p>
             </div>
-            <Button variant="outline" size="sm" disabled className="text-xs">
+            <Button variant="outline" size="sm" disabled className="text-xs cursor-not-allowed">
               Configure Glossary
             </Button>
           </div>
@@ -166,7 +193,7 @@ export const SettingsPage: React.FC = () => {
       <Card className="border-border shadow-sm">
         <CardHeader className="border-b border-border pb-4 bg-muted/10">
           <CardTitle className="text-base flex items-center gap-2">
-            <Sliders className="h-4 w-4 text-muted-foreground" /> Advanced Settings
+            <Sliders className="h-4 w-4 text-primary" /> Advanced Settings
           </CardTitle>
           <CardDescription>
             Configure debug mode parameters, model routing overrides, and request cache controls.
@@ -177,7 +204,10 @@ export const SettingsPage: React.FC = () => {
           {/* Cache Bypass toggle */}
           <div className="flex items-center justify-between gap-4 border-b border-border pb-5">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">Bypass Request Cache</h3>
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                Bypass Request Cache
+                <Tooltip content="Force a fresh run instead of reading from cached previous responses for this prompt." />
+              </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Ignore local request-response cache and force the agent pipeline to rerun fresh LLM calls.
               </p>
@@ -186,19 +216,23 @@ export const SettingsPage: React.FC = () => {
           </div>
 
           {/* Placeholder: Provider Override */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5 opacity-55">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5 opacity-40 select-none cursor-not-allowed">
             <div>
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                LLM Provider Override <Cpu className="h-3.5 w-3.5 text-muted-foreground" />
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  LLM Provider Override <Cpu className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Tooltip content="Specify a custom LLM model directory to process tasks instead of the default planner selections." />
+                </h3>
+                <span className="text-[9px] bg-muted text-muted-foreground/80 border border-border px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-semibold select-none">Coming Soon</span>
+              </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Force specific LLM model routing overrides (e.g., Gemini 2.5 Pro vs. DeepSeek Coder). (Phase 3)
+                Force specific LLM model routing overrides (e.g., Gemini 2.5 Pro vs. DeepSeek Coder).
               </p>
             </div>
             <div className="w-full sm:w-[220px]">
               <Select value="system" disabled>
-                <SelectTrigger className="w-full bg-background">
-                  <SelectValue placeholder="System Default" />
+                <SelectTrigger className="w-full bg-background cursor-not-allowed shadow-xs">
+                  System Default
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="system">System Default</SelectItem>
@@ -208,16 +242,20 @@ export const SettingsPage: React.FC = () => {
           </div>
 
           {/* Placeholder: Pipeline Logs Switch */}
-          <div className="flex items-center justify-between gap-4 opacity-55">
+          <div className="flex items-center justify-between gap-4 opacity-40 select-none cursor-not-allowed">
             <div>
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                Verbose Debug Logs <ShieldAlert className="h-3.5 w-3.5 text-destructive" />
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  Verbose Debug Logs <ShieldAlert className="h-3.5 w-3.5 text-destructive" />
+                  <Tooltip content="Expose raw model console logs and budget client details during the generation sequence." />
+                </h3>
+                <span className="text-[9px] bg-muted text-muted-foreground/80 border border-border px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-semibold select-none">Coming Soon</span>
+              </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Expose raw model console logs and budget client details during the generation sequence. (Phase 3)
+                Expose raw model console logs and budget client details during the generation sequence.
               </p>
             </div>
-            <Switch checked={false} disabled />
+            <Switch checked={false} disabled className="cursor-not-allowed" />
           </div>
         </CardContent>
       </Card>
@@ -242,7 +280,7 @@ export const SettingsPage: React.FC = () => {
           <Button
             onClick={handleSave}
             disabled={isSaving}
-            className="bg-primary text-primary-foreground font-semibold px-6 py-2 cursor-pointer shadow-sm hover:bg-primary/95 transition-all text-xs"
+            className="font-semibold px-6 py-2 text-xs"
           >
             {isSaving ? 'Saving...' : 'Save Preferences'}
           </Button>

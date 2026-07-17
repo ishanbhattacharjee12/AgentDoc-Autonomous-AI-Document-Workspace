@@ -77,7 +77,7 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
               <ShieldCheck className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider block">
+              <span className="text-[9.5px] uppercase font-semibold text-muted-foreground tracking-wider block break-normal">
                 Planner Confidence
               </span>
               <div className="flex items-center gap-1.5 mt-1">
@@ -97,7 +97,7 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
               <Layers className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider block">
+              <span className="text-[9.5px] uppercase font-semibold text-muted-foreground tracking-wider block break-normal">
                 Task Complexity
               </span>
               <span className="text-sm font-bold text-foreground block mt-1">
@@ -114,7 +114,7 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider block">
+              <span className="text-[9.5px] uppercase font-semibold text-muted-foreground tracking-wider block break-normal">
                 Estimated Reading Time
               </span>
               <span className="text-sm font-bold text-foreground block mt-1">
@@ -131,7 +131,7 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
               <Wrench className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider block">
+              <span className="text-[9.5px] uppercase font-semibold text-muted-foreground tracking-wider block break-normal">
                 Implementation Effort
               </span>
               <span className="text-sm font-bold text-foreground block mt-1">
@@ -143,9 +143,9 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
       </div>
 
       {/* Main Details Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left Column: Intent, Strategy & Logic */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
+        <div className="lg:col-span-3 flex flex-col gap-6">
           {/* Card 1: Intent & Document Strategy */}
           <Card className="border-border shadow-sm">
             <CardHeader className="border-b border-border pb-3 bg-muted/10">
@@ -224,15 +224,15 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
         </div>
 
         {/* Right Column: Assumptions & Self-Check Reflection */}
-        <div className="flex flex-col gap-6">
+        <div className="lg:col-span-2 flex flex-col gap-6">
           {/* Card 3: Assumptions */}
-          <Card className="border-border shadow-sm h-full flex flex-col">
+          <Card className="border-border shadow-sm">
             <CardHeader className="border-b border-border pb-3 bg-muted/10">
               <CardTitle className="text-xs font-semibold uppercase text-muted-foreground tracking-wider flex items-center gap-2">
                 <ClipboardList className="h-4 w-4 text-muted-foreground" /> Planner Assumptions
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-5 flex-1 flex flex-col gap-3">
+            <CardContent className="pt-5 flex flex-col gap-3">
               {data.assumptions && data.assumptions.length > 0 ? (
                 <ul className="flex flex-col gap-2.5">
                   {data.assumptions.map((item, idx) => (
@@ -243,7 +243,7 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
                   ))}
                 </ul>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-center py-6 text-muted-foreground/60">
+                <div className="flex flex-col items-center justify-center text-center py-6 text-muted-foreground/60">
                   <HelpCircle className="h-8 w-8 mb-2 opacity-40" />
                   <p className="text-xs italic">No explicit assumptions were formulated during planning.</p>
                 </div>
@@ -261,8 +261,8 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
               </CardHeader>
               <CardContent className="pt-5 flex flex-col gap-4">
                 {/* Score & Passed status */}
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Quality Audit Grade:</span>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <span className="text-xs text-muted-foreground shrink-0 whitespace-nowrap">Quality Audit Grade:</span>
                   <Badge className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
                     data.reflection.passed 
                       ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 dark:text-emerald-400' 

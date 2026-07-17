@@ -49,7 +49,7 @@
 }
 
 :root {
-    --background: #F6F7F3;
+    --background: #F7F5EF;
     --foreground: #1E2622;
     --card: #FFFFFF;
     --card-foreground: #1E2622;
@@ -147,4 +147,19 @@
   to {
     opacity: 1;
   }
+}
+
+/* Premium Card and Interactive Hover Lift utilities */
+.hover-lift {
+  transition: transform 150ms cubic-bezier(0.2, 0, 0, 1), box-shadow 150ms cubic-bezier(0.2, 0, 0, 1), border-color 150ms ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.04), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+  border-color: rgba(44, 110, 92, 0.25);
+}
+
+.dark .hover-lift:hover {
+  border-color: rgba(66, 146, 124, 0.25);
 }

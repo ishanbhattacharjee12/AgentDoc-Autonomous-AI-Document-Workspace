@@ -173,7 +173,7 @@ export const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entry, onClose, on
           <a
             href={getDocumentDownloadUrl(entry.document_filename)}
             download
-            className="inline-flex items-center justify-center rounded-md text-sm font-semibold transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/95 h-10 flex-1 gap-2 cursor-pointer"
+            className="inline-flex items-center justify-center rounded-lg text-sm font-semibold transition-colors bg-primary hover:bg-[#1f5547] text-primary-foreground shadow-sm h-10 flex-1 gap-2 cursor-pointer"
           >
             <Download className="h-4 w-4" /> Download {formatLabel}
           </a>
