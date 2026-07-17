@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
-from app.config import OUTPUT_DIR, STATIC_DIR, LLM_API_KEY
+from app.config import OUTPUT_DIR, STATIC_DIR, LLM_API_KEY, BUDGET_MAX_STAGE_LATENCY
 from app.models import AgentRequest, AgentResponse, PlanEditRequest
 from app.agent.orchestrator import run_agent, execute_plan_only
 
@@ -102,7 +102,7 @@ async def stream_process_request(request: str, require_review: bool = False, for
         
         while not task.done():
             # Fail-fast check
-            if time.time() - start_time > 60.0:
+            if time.time() - start_time > BUDGET_MAX_STAGE_LATENCY:
                 import traceback
                 import sys
                 frames = sys._current_frames()
@@ -111,14 +111,15 @@ async def stream_process_request(request: str, require_review: bool = False, for
                     stack_traces.append(f"Thread {thread_id}:\n" + "".join(traceback.format_stack(frame)))
                 
                 logger.error(
-                    "Fail-Fast Safeguard Triggered! Request exceeded 60s limit. "
+                    "Fail-Fast Safeguard Triggered! Request exceeded %ds limit. "
                     "Elapsed: %.2fs. Active stage: %s. Thread Stack Traces:\n%s",
+                    int(BUDGET_MAX_STAGE_LATENCY),
                     time.time() - start_time,
                     _current_stage.get(),
                     "\n".join(stack_traces)
                 )
                 
-                yield f"data: {json.dumps({'type': 'error', 'error': 'Pipeline timeout: stage execution exceeded 60s limit.'})}\n\n"
+                yield f"data: {json.dumps({'type': 'error', 'error': f'Pipeline timeout: stage execution exceeded {int(BUDGET_MAX_STAGE_LATENCY)}s limit.'})}\n\n"
                 return
 
             try:
@@ -195,7 +196,7 @@ async def stream_execute_plan(body: PlanEditRequest):
         
         while not task.done():
             # Fail-fast check
-            if time.time() - start_time > 60.0:
+            if time.time() - start_time > BUDGET_MAX_STAGE_LATENCY:
                 import traceback
                 import sys
                 frames = sys._current_frames()
@@ -204,14 +205,15 @@ async def stream_execute_plan(body: PlanEditRequest):
                     stack_traces.append(f"Thread {thread_id}:\n" + "".join(traceback.format_stack(frame)))
                 
                 logger.error(
-                    "Fail-Fast Safeguard Triggered! Request exceeded 60s limit. "
+                    "Fail-Fast Safeguard Triggered! Request exceeded %ds limit. "
                     "Elapsed: %.2fs. Active stage: %s. Thread Stack Traces:\n%s",
+                    int(BUDGET_MAX_STAGE_LATENCY),
                     time.time() - start_time,
                     _current_stage.get(),
                     "\n".join(stack_traces)
                 )
                 
-                yield f"data: {json.dumps({'type': 'error', 'error': 'Pipeline timeout: stage execution exceeded 60s limit.'})}\n\n"
+                yield f"data: {json.dumps({'type': 'error', 'error': f'Pipeline timeout: stage execution exceeded {int(BUDGET_MAX_STAGE_LATENCY)}s limit.'})}\n\n"
                 return
 
             try:

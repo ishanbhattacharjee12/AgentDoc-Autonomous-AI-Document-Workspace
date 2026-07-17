@@ -13,11 +13,14 @@ logger = logging.getLogger(__name__)
 
 
 def execute_plan(plan: PlannerOutput, request: str) -> list[dict]:
-    """Execute the plan by batching tasks into logical phases.
+    """Execute the plan by batching tasks into logical phases using a hybrid parallel/sequential model.
 
-    Returns a list of execution result dicts mapped back to individual tasks.
+    Phase 1 & 2 (Discovery and Strategy) run concurrently since they are conceptual/framing.
+    Phase 3 (Implementation/Roadmap) runs sequentially after, incorporating context from the first two.
     """
     from app.agent.state import PipelineState
+    from concurrent.futures import ThreadPoolExecutor
+    
     state = PipelineState(
         request=request,
         goal=plan.goal,
@@ -26,55 +29,45 @@ def execute_plan(plan: PlannerOutput, request: str) -> list[dict]:
     )
     
     results: list[dict] = []
-    
     phases = _group_tasks_into_phases(plan.tasks)
     
-    for phase in phases:
-        phase_name = phase["name"]
-        phase_tasks = phase["tasks"]
-        
-        logger.info(
-            "Executing Phase: '%s' (%d tasks)",
-            phase_name, len(phase_tasks)
-        )
+    if not phases:
+        return []
 
+    def run_single_phase(phase_dict, prev_context):
+        phase_name = phase_dict["name"]
+        phase_tasks = phase_dict["tasks"]
+        
+        logger.info("Executing Phase: '%s' (%d tasks)", phase_name, len(phase_tasks))
         for task in phase_tasks:
             task.status = "running"
             
         system_prompt = EXECUTOR_SYSTEM_PROMPT + f"\n\nYou are operating in the {phase_name.upper()} execution phase. Thoroughly execute all tasks assigned to this phase as a cohesive block."
-        
         task_dicts = [{"id": t.id, "task": t.task, "purpose": t.purpose, "tool": t.tool} for t in phase_tasks]
-        user_prompt = build_executor_prompt(request, plan.goal, plan.document_type, plan.assumptions, task_dicts, state.get_summary_text())
-
+        user_prompt = build_executor_prompt(request, plan.goal, plan.document_type, plan.assumptions, task_dicts, prev_context)
+        
         try:
             content = call_llm(system_prompt, user_prompt, temperature=0.5, max_tokens=4000, profile="deep_analysis")
             summary = content[:150].split("\n")[0] if content else f"Completed phase: {phase_name}"
-
-            # Record summary in shared state
-            state.phase_summaries.append({
-                "task": phase_name,
-                "summary": summary
-            })
-
-            # Map the single LLM phase execution result back to the individual tasks for UI tracking
+            
+            phase_results = []
             for i, task in enumerate(phase_tasks):
                 task.status = "completed"
-                results.append({
+                phase_results.append({
                     "task_id": task.id,
                     "task": task.task,
                     "tool": task.tool,
                     "status": "completed",
                     "summary": f"Executed in phase: {phase_name}",
-                    "content": content if i == 0 else "" # Only include the heavy text once per phase to avoid duplicating context for synthesizer
+                    "content": content if i == 0 else ""  # Heavy text once per phase to avoid duplicating context for synthesizer
                 })
-            
-            logger.info("Phase '%s' completed successfully.", phase_name)
-
+            return {"name": phase_name, "summary": summary, "results": phase_results, "error": None}
         except Exception as e:
             logger.error("Phase '%s' failed: %s", phase_name, e)
+            phase_results = []
             for task in phase_tasks:
                 task.status = "failed"
-                results.append({
+                phase_results.append({
                     "task_id": task.id,
                     "task": task.task,
                     "tool": task.tool,
@@ -82,7 +75,48 @@ def execute_plan(plan: PlannerOutput, request: str) -> list[dict]:
                     "summary": f"Phase failed: {str(e)[:100]}",
                     "content": "",
                 })
-            # Graceful degradation: continue to the next phase instead of breaking
+            return {"name": phase_name, "summary": f"Failed: {str(e)[:50]}", "results": phase_results, "error": e}
+
+    # Hybrid Concurrency Strategy:
+    # If 3 or more phases exist, run Phase 1 & 2 in parallel.
+    # Run Phase 3 sequentially with the context derived from Phase 1 & 2.
+    if len(phases) >= 3:
+        logger.info("Hybrid Concurrency Mode: Running Phase 1 & 2 in parallel...")
+        parallel_phases = [phases[0], phases[1]]
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            futures = [
+                executor.submit(run_single_phase, p, "")
+                for p in parallel_phases
+            ]
+            phase_outputs = [f.result() for f in futures]
+            
+        # Collect outcomes
+        for out in phase_outputs:
+            state.phase_summaries.append({
+                "task": out["name"],
+                "summary": out["summary"]
+            })
+            results.extend(out["results"])
+            
+        # Sequentially run the remainder (e.g. Implementation & Deliverables)
+        logger.info("Hybrid Concurrency Mode: Running remaining phases sequentially...")
+        for p in phases[2:]:
+            out = run_single_phase(p, state.get_summary_text())
+            state.phase_summaries.append({
+                "task": out["name"],
+                "summary": out["summary"]
+            })
+            results.extend(out["results"])
+    else:
+        # Standard sequential run for smaller plans
+        logger.info("Fewer than 3 phases. Running sequentially...")
+        for p in phases:
+            out = run_single_phase(p, state.get_summary_text())
+            state.phase_summaries.append({
+                "task": out["name"],
+                "summary": out["summary"]
+            })
+            results.extend(out["results"])
 
     completed = sum(1 for r in results if r.get("status") == "completed")
     logger.info("Execution complete: %d/%d tasks succeeded", completed, len(results))
