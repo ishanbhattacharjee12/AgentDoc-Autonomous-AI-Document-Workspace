@@ -109,12 +109,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }`}
       >
         {/* Logo Section */}
-        <div className="hidden md:flex h-[88px] items-center gap-3 px-6 border-b border-border">
+        <div className="hidden md:flex h-[108px] items-center gap-3 px-6 pt-5 pb-3 border-b border-border">
           <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary text-primary-foreground shrink-0 shadow-xs">
             <FileText className="h-6.5 w-6.5" />
           </div>
           <div className="flex flex-col justify-center min-w-0">
-            <span className="font-extrabold text-foreground tracking-tight text-[30px] block leading-none">AgentDoc</span>
+            <span className="font-extrabold text-foreground tracking-tight text-[33px] block leading-none">AgentDoc</span>
             <span className="text-[9px] text-muted-foreground/85 font-semibold uppercase tracking-wider mt-1.5 block truncate">AI Document Workspace</span>
           </div>
         </div>
