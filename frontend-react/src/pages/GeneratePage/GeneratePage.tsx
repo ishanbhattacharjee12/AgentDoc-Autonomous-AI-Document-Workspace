@@ -566,7 +566,7 @@ Example: "Create a Software Requirements Specification for an e-commerce platfor
             </Card>
 
             {/* Generate Trigger Button */}
-            <div className="flex justify-end mt-2">
+            <div className="flex justify-center mt-2">
               <Button
                 type="submit"
                 disabled={!requestText.trim()}
