@@ -68,9 +68,9 @@ Keyboard-first search panel for navigation and rapid executions.
 
 ## 📑 Quick Start & References
 
-*   **Setup & Local Installation**: Refer to the [Installation Guide](file:///Users/ishanbhattacharjee/Desktop/AgentDoc_Project/INSTALLATION.md).
-*   **Production Deployment**: Refer to the [Deployment Guide](file:///Users/ishanbhattacharjee/Desktop/AgentDoc_Project/DEPLOYMENT.md).
-*   **System Design & Internals**: Refer to the [Architecture Documentation](file:///Users/ishanbhattacharjee/Desktop/AgentDoc_Project/ARCHITECTURE.md).
-*   **Demonstration Scripts**: Refer to the [Demo Playbook](file:///Users/ishanbhattacharjee/Desktop/AgentDoc_Project/docs/DEMO.md) for 2-minute, 5-minute, and 10-minute walkthrough guides.
-*   **Changelog & Updates**: Refer to the [Changelog](file:///Users/ishanbhattacharjee/Desktop/AgentDoc_Project/CHANGELOG.md).
-*   **License**: Licensed under the [MIT License](file:///Users/ishanbhattacharjee/Desktop/AgentDoc_Project/LICENSE).
+*   **Setup & Local Installation**: Refer to the [Installation Guide](INSTALLATION.md).
+*   **Production Deployment**: Refer to the [Deployment Guide](DEPLOYMENT.md).
+*   **System Design & Internals**: Refer to the [Architecture Documentation](ARCHITECTURE.md).
+*   **Demonstration Scripts**: Refer to the [Demo Playbook](docs/DEMO.md) for 2-minute, 5-minute, and 10-minute walkthrough guides.
+*   **Changelog & Updates**: Refer to the [Changelog](CHANGELOG.md).
+*   **License**: Licensed under the [MIT License](LICENSE).

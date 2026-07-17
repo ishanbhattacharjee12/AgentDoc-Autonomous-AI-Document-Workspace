@@ -30,9 +30,10 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-# Generated documents
-app/outputs/*.docx
-outputs/*.docx
+# Generated documents and caches
+app/outputs/*
+!app/outputs/.gitkeep
+cache/
 
 # Build
 *.egg-info/

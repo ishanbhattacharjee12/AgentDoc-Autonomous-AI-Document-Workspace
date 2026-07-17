@@ -45,4 +45,4 @@ This guide provides step-by-step walkthrough scripts to demo the AgentDoc platfo
 *   **Walkthrough Sequence**:
     1.  Explain the **Request Cache**: Run the chatbot demo prompt twice. The second run completes instantly because the SQLite backend intercepts matching requests.
     2.  Open Chrome DevTools Network Tab: Navigate between Generate, History, and Settings pages. Show that JavaScript chunks (`GeneratePage-[hash].js`, etc.) load dynamically.
-    3.  Showcase [ARCHITECTURE.md](file:///Users/ishanbhattacharjee/Desktop/AgentDoc_Project/ARCHITECTURE.md) flowcharts.
+    3.  Showcase [ARCHITECTURE.md](../ARCHITECTURE.md) flowcharts.

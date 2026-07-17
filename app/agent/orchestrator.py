@@ -370,8 +370,8 @@ def _execute_plan_downstream(
         
         try:
             import os
-            os.makedirs("/Users/ishanbhattacharjee/Desktop/AgentDoc_Project/scratch", exist_ok=True)
-            with open("/Users/ishanbhattacharjee/Desktop/AgentDoc_Project/scratch/last_draft.md", "w") as f:
+            os.makedirs("scratch", exist_ok=True)
+            with open("scratch/last_draft.md", "w") as f:
                 f.write(final_draft)
         except Exception as e:
             logger.warning("Failed to write last_draft.md: %s", e)

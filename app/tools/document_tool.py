@@ -16,6 +16,10 @@ from fpdf.enums import XPos, YPos
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.section import WD_SECTION_START
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 
 import time
 from app.config import OUTPUT_DIR
@@ -32,6 +36,610 @@ def sanitize_filename(name: str) -> str:
     # Truncate to reasonable length
     return safe[:50] if safe else "document"
 
+
+class DOCXTheme:
+    # Centralized colors (HEX and RGB format)
+    HEX_PRIMARY = "1B3F32"       # Dark Forest Green
+    HEX_SECONDARY = "5C6B62"     # Slate / Medium Sage Grey
+    HEX_TEXT = "282C2A"          # Off-black charcoal
+    HEX_MUTED = "888C8A"         # Muted grey-sage
+    HEX_DIVIDER = "DAE0DC"       # Light grey-green
+    HEX_BG_LIGHT = "F4F6F4"      # Clean background cover fill / standard shading
+    HEX_BG_SAGE = "EDF3EF"       # Executive summary soft sage box fill
+
+    RGB_PRIMARY = RGBColor(27, 63, 50)
+    RGB_SECONDARY = RGBColor(92, 107, 98)
+    RGB_TEXT = RGBColor(40, 44, 42)
+    RGB_MUTED = RGBColor(136, 140, 138)
+
+    # Fonts
+    FONT_BODY = "Arial"
+    FONT_TITLE = "Times New Roman"
+
+    # Sizes (pt)
+    SIZE_TITLE = 26
+    SIZE_SUBTITLE = 11
+    SIZE_H1 = 15
+    SIZE_H2 = 12.5
+    SIZE_H3 = 11
+    SIZE_BODY = 10
+    SIZE_FOOTER = 8.5
+
+
+# --- OXML HELPER FUNCTIONS FOR PYTHON-DOCX ---
+
+def _set_cell_background(cell, hex_color):
+    tcPr = cell._tc.get_or_add_tcPr()
+    shd = tcPr.find(qn('w:shd'))
+    if shd is not None:
+        tcPr.remove(shd)
+    shd = OxmlElement('w:shd')
+    shd.set(qn('w:val'), 'clear')
+    shd.set(qn('w:color'), 'auto')
+    shd.set(qn('w:fill'), hex_color)
+    tcPr.append(shd)
+
+
+def _set_cell_margins(cell, top=100, bottom=100, left=150, right=150):
+    tcPr = cell._tc.get_or_add_tcPr()
+    tcMar = tcPr.find(qn('w:tcMar'))
+    if tcMar is not None:
+        tcPr.remove(tcMar)
+    tcMar = OxmlElement('w:tcMar')
+    for m, val in [('top', top), ('bottom', bottom), ('left', left), ('right', right)]:
+        node = OxmlElement(f'w:{m}')
+        node.set(qn('w:w'), str(val))
+        node.set(qn('w:type'), 'dxa')
+        tcMar.append(node)
+    tcPr.append(tcMar)
+
+
+def _set_cell_borders(cell, **kwargs):
+    """
+    Sets borders for a cell.
+    kwargs: top, bottom, left, right
+    value: dict like {'sz': 12, 'val': 'single', 'color': 'HEX', 'space': '0'}
+    """
+    tcPr = cell._tc.get_or_add_tcPr()
+    tcBorders = tcPr.find(qn('w:tcBorders'))
+    if tcBorders is None:
+        tcBorders = OxmlElement('w:tcBorders')
+        tcPr.append(tcBorders)
+    
+    for edge in ('top', 'left', 'bottom', 'right'):
+        edge_data = kwargs.get(edge)
+        if edge_data:
+            tag = f'w:{edge}'
+            el = tcBorders.find(qn(tag))
+            if el is not None:
+                tcBorders.remove(el)
+            element = OxmlElement(tag)
+            for key, val in edge_data.items():
+                element.set(qn(f'w:{key}'), str(val))
+            tcBorders.append(element)
+
+
+def _set_paragraph_bottom_border(p, hex_color="1B3F32", size=12):
+    pPr = p._p.get_or_add_pPr()
+    pBdr = pPr.find(qn('w:pBdr'))
+    if pBdr is None:
+        pBdr = OxmlElement('w:pBdr')
+        pPr.append(pBdr)
+    bottom = pBdr.find(qn('w:bottom'))
+    if bottom is not None:
+        pBdr.remove(bottom)
+    bottom = OxmlElement('w:bottom')
+    bottom.set(qn('w:val'), 'single')
+    bottom.set(qn('w:sz'), str(size))
+    bottom.set(qn('w:space'), '8')
+    bottom.set(qn('w:color'), hex_color)
+    pBdr.append(bottom)
+
+
+def _set_paragraph_top_border(p, hex_color="DAE0DC", size=4):
+    pPr = p._p.get_or_add_pPr()
+    pBdr = pPr.find(qn('w:pBdr'))
+    if pBdr is None:
+        pBdr = OxmlElement('w:pBdr')
+        pPr.append(pBdr)
+    top = pBdr.find(qn('w:top'))
+    if top is not None:
+        pBdr.remove(top)
+    top = OxmlElement('w:top')
+    top.set(qn('w:val'), 'single')
+    top.set(qn('w:sz'), str(size))
+    top.set(qn('w:space'), '12')
+    top.set(qn('w:color'), hex_color)
+    pBdr.append(top)
+
+
+def _prevent_row_split(row):
+    trPr = row._tr.get_or_add_trPr()
+    cantSplit = trPr.find(qn('w:cantSplit'))
+    if cantSplit is None:
+        cantSplit = OxmlElement('w:cantSplit')
+        trPr.append(cantSplit)
+
+
+def _set_repeat_header(row):
+    trPr = row._tr.get_or_add_trPr()
+    tblHeader = trPr.find(qn('w:tblHeader'))
+    if tblHeader is None:
+        tblHeader = OxmlElement('w:tblHeader')
+        trPr.append(tblHeader)
+
+
+def _add_page_number(run):
+    fldChar1 = OxmlElement('w:fldChar')
+    fldChar1.set(qn('w:fldCharType'), 'begin')
+    instrText = OxmlElement('w:instrText')
+    instrText.set(qn('xml:space'), 'preserve')
+    instrText.text = "PAGE"
+    fldChar2 = OxmlElement('w:fldChar')
+    fldChar2.set(qn('w:fldCharType'), 'separate')
+    fldChar3 = OxmlElement('w:fldChar')
+    fldChar3.set(qn('w:fldCharType'), 'end')
+    
+    r = run._r
+    r.append(fldChar1)
+    r.append(instrText)
+    r.append(fldChar2)
+    r.append(fldChar3)
+
+
+# --- REUSABLE DOCX COMPONENT RENDERING HELPERS ---
+
+def _docx_build_cover_page(doc: Document, title: str, document_type: str, gen_date: str) -> None:
+    cover_section = doc.sections[0]
+    cover_section.top_margin = Inches(1.0)
+    cover_section.bottom_margin = Inches(1.0)
+    cover_section.left_margin = Inches(1.0)
+    cover_section.right_margin = Inches(1.0)
+
+    # 1x1 table acting as cover page card
+    table = doc.add_table(rows=1, cols=1)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    cell = table.cell(0, 0)
+    cell.width = Inches(6.5)
+    
+    _set_cell_background(cell, DOCXTheme.HEX_BG_LIGHT)
+    _set_cell_margins(cell, top=1440, bottom=1440, left=720, right=720)
+    _set_cell_borders(
+        cell,
+        left={'val': 'single', 'sz': '108', 'color': DOCXTheme.HEX_PRIMARY, 'space': '0'},
+        top={'val': 'none'},
+        right={'val': 'none'},
+        bottom={'val': 'none'}
+    )
+    
+    p = cell.paragraphs[0]
+    p.paragraph_format.space_before = Pt(0)
+    p.paragraph_format.space_after = Pt(24)
+    
+    # Nested table for monogram brand logo and wordmark
+    logo_table = cell.add_table(rows=1, cols=2)
+    logo_table.alignment = WD_TABLE_ALIGNMENT.LEFT
+    
+    cell_logo = logo_table.cell(0, 0)
+    cell_logo.width = Inches(0.5)
+    _set_cell_background(cell_logo, DOCXTheme.HEX_PRIMARY)
+    _set_cell_margins(cell_logo, top=60, bottom=60, left=60, right=60)
+    _set_cell_borders(cell_logo, top={'val':'none'}, left={'val':'none'}, right={'val':'none'}, bottom={'val':'none'})
+    logo_p = cell_logo.paragraphs[0]
+    logo_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    logo_run = logo_p.add_run("AD")
+    logo_run.bold = True
+    logo_run.font.name = DOCXTheme.FONT_BODY
+    logo_run.font.size = Pt(9.5)
+    logo_run.font.color.rgb = RGBColor(255, 255, 255)
+    
+    cell_brand = logo_table.cell(0, 1)
+    cell_brand.width = Inches(5.0)
+    _set_cell_margins(cell_brand, top=60, bottom=60, left=120, right=60)
+    _set_cell_borders(cell_brand, top={'val':'none'}, left={'val':'none'}, right={'val':'none'}, bottom={'val':'none'})
+    brand_p = cell_brand.paragraphs[0]
+    brand_p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    brand_run = brand_p.add_run("AgentDoc AI Workspace")
+    brand_run.bold = True
+    brand_run.font.name = DOCXTheme.FONT_BODY
+    brand_run.font.size = Pt(10.5)
+    brand_run.font.color.rgb = DOCXTheme.RGB_PRIMARY
+    
+    # Large spacers
+    p_space = cell.add_paragraph()
+    p_space.paragraph_format.space_before = Pt(72)
+    p_space.paragraph_format.space_after = Pt(0)
+    
+    # Document Type
+    p_type = cell.add_paragraph()
+    p_type.paragraph_format.space_before = Pt(0)
+    p_type.paragraph_format.space_after = Pt(6)
+    run_type = p_type.add_run(document_type.upper().replace('_', ' '))
+    run_type.bold = True
+    run_type.font.name = DOCXTheme.FONT_BODY
+    run_type.font.size = Pt(10.5)
+    run_type.font.color.rgb = DOCXTheme.RGB_SECONDARY
+    
+    # Title (Serif bold Times New Roman size 26)
+    p_title = cell.add_paragraph()
+    p_title.paragraph_format.space_before = Pt(0)
+    p_title.paragraph_format.space_after = Pt(16)
+    p_title.paragraph_format.line_spacing = 1.1
+    run_title = p_title.add_run(title)
+    run_title.bold = True
+    run_title.font.name = DOCXTheme.FONT_TITLE
+    run_title.font.size = Pt(26)
+    run_title.font.color.rgb = DOCXTheme.RGB_PRIMARY
+    _set_paragraph_bottom_border(p_title, hex_color=DOCXTheme.HEX_PRIMARY, size=12)
+    
+    # Subtitle
+    p_sub = cell.add_paragraph()
+    p_sub.paragraph_format.space_before = Pt(12)
+    p_sub.paragraph_format.space_after = Pt(96)
+    run_sub = p_sub.add_run("Prepared for: Strategic Executive Stakeholders")
+    run_sub.italic = True
+    run_sub.font.name = DOCXTheme.FONT_BODY
+    run_sub.font.size = Pt(11)
+    run_sub.font.color.rgb = DOCXTheme.RGB_TEXT
+    
+    # Metadata Row at bottom (3 columns)
+    meta_table = cell.add_table(rows=2, cols=3)
+    meta_table.alignment = WD_TABLE_ALIGNMENT.LEFT
+    col_w = Inches(1.8)
+    for col in meta_table.columns:
+        col.width = col_w
+        
+    labels = ["CLASSIFICATION", "PREPARED BY", "DATE OF ISSUE"]
+    vals = ["Confidential / Executive", "AgentDoc Services", gen_date]
+    
+    for i, label in enumerate(labels):
+        cell_lbl = meta_table.cell(0, i)
+        cell_lbl.width = col_w
+        _set_cell_margins(cell_lbl, top=0, bottom=0, left=0, right=0)
+        _set_cell_borders(cell_lbl, top={'val':'none'}, left={'val':'none'}, right={'val':'none'}, bottom={'val':'none'})
+        p_lbl = cell_lbl.paragraphs[0]
+        p_lbl.paragraph_format.space_after = Pt(2)
+        run = p_lbl.add_run(label)
+        run.bold = True
+        run.font.name = DOCXTheme.FONT_BODY
+        run.font.size = Pt(7.5)
+        run.font.color.rgb = DOCXTheme.RGB_SECONDARY
+        
+    for i, val in enumerate(vals):
+        cell_val = meta_table.cell(1, i)
+        cell_val.width = col_w
+        _set_cell_margins(cell_val, top=0, bottom=0, left=0, right=0)
+        _set_cell_borders(cell_val, top={'val':'none'}, left={'val':'none'}, right={'val':'none'}, bottom={'val':'none'})
+        p_val = cell_val.paragraphs[0]
+        p_val.paragraph_format.space_after = Pt(0)
+        run = p_val.add_run(val)
+        run.font.name = DOCXTheme.FONT_BODY
+        run.font.size = Pt(9)
+        run.font.color.rgb = DOCXTheme.RGB_PRIMARY
+
+
+def _docx_build_running_header(section, title: str, document_type: str) -> None:
+    header = section.header
+    tbl = header.add_table(rows=1, cols=2, width=Inches(6.5))
+    tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+    
+    c1 = tbl.cell(0, 0)
+    c1.width = Inches(3.25)
+    _set_cell_margins(c1, top=60, bottom=60, left=0, right=60)
+    _set_cell_borders(c1, left={'val':'none'}, top={'val':'none'}, right={'val':'none'}, bottom={'val':'single', 'sz':'4', 'color': DOCXTheme.HEX_DIVIDER})
+    p1 = c1.paragraphs[0]
+    p1.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    r1 = p1.add_run(title)
+    r1.font.name = DOCXTheme.FONT_BODY
+    r1.font.size = Pt(8.5)
+    r1.font.color.rgb = DOCXTheme.RGB_MUTED
+    
+    c2 = tbl.cell(0, 1)
+    c2.width = Inches(3.25)
+    _set_cell_margins(c2, top=60, bottom=60, left=60, right=0)
+    _set_cell_borders(c2, left={'val':'none'}, top={'val':'none'}, right={'val':'none'}, bottom={'val':'single', 'sz':'4', 'color': DOCXTheme.HEX_DIVIDER})
+    p2 = c2.paragraphs[0]
+    p2.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    r2 = p2.add_run(document_type.upper().replace('_', ' '))
+    r2.font.name = DOCXTheme.FONT_BODY
+    r2.font.size = Pt(8.5)
+    r2.font.color.rgb = DOCXTheme.RGB_MUTED
+
+
+def _docx_build_running_footer(section) -> None:
+    footer = section.footer
+    tbl = footer.add_table(rows=1, cols=2, width=Inches(6.5))
+    tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+    
+    c1 = tbl.cell(0, 0)
+    c1.width = Inches(4.5)
+    _set_cell_margins(c1, top=60, bottom=0, left=0, right=0)
+    _set_cell_borders(c1, left={'val':'none'}, top={'val':'none'}, right={'val':'none'}, bottom={'val':'none'})
+    p1 = c1.paragraphs[0]
+    p1.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    r1 = p1.add_run("AgentDoc AI Workspace — Autonomous Document Generation Agent")
+    r1.italic = True
+    r1.font.name = DOCXTheme.FONT_BODY
+    r1.font.size = Pt(8)
+    r1.font.color.rgb = DOCXTheme.RGB_MUTED
+    
+    c2 = tbl.cell(0, 1)
+    c2.width = Inches(2.0)
+    _set_cell_margins(c2, top=60, bottom=0, left=0, right=0)
+    _set_cell_borders(c2, left={'val':'none'}, top={'val':'none'}, right={'val':'none'}, bottom={'val':'none'})
+    p2 = c2.paragraphs[0]
+    p2.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    r2 = p2.add_run("Page ")
+    r2.font.name = DOCXTheme.FONT_BODY
+    r2.font.size = Pt(8)
+    r2.font.color.rgb = DOCXTheme.RGB_MUTED
+    _add_page_number(p2.add_run())
+
+
+def _docx_render_callout_box(doc: Document, text: str, hex_border_color: str, hex_fill_color: str, text_style: str = "") -> None:
+    table = doc.add_table(rows=1, cols=1)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    cell = table.cell(0, 0)
+    cell.width = Inches(6.5)
+    
+    _set_cell_background(cell, hex_fill_color)
+    _set_cell_margins(cell, top=120, bottom=120, left=180, right=180)
+    _set_cell_borders(
+        cell,
+        left={'val': 'single', 'sz': '36', 'color': hex_border_color, 'space': '0'},
+        top={'val': 'none'},
+        right={'val': 'none'},
+        bottom={'val': 'none'}
+    )
+    
+    p = cell.paragraphs[0]
+    p.paragraph_format.space_before = Pt(0)
+    p.paragraph_format.space_after = Pt(0)
+    p.paragraph_format.line_spacing = 1.15
+    
+    parts = re.split(r'(\*\*.*?\*\*)', text)
+    for part in parts:
+        if part.startswith('**') and part.endswith('**'):
+            run = p.add_run(part[2:-2])
+            run.bold = True
+        else:
+            run = p.add_run(part)
+            
+        run.font.name = DOCXTheme.FONT_BODY
+        run.font.size = Pt(DOCXTheme.SIZE_BODY)
+        run.font.color.rgb = DOCXTheme.RGB_TEXT
+        if "I" in text_style:
+            run.italic = True
+            
+    _prevent_row_split(table.rows[0])
+    
+    spacer = doc.add_paragraph()
+    spacer.paragraph_format.space_before = Pt(0)
+    spacer.paragraph_format.space_after = Pt(6)
+
+
+def _docx_render_executive_summary_panel(doc: Document, blocks: list) -> None:
+    lines = []
+    for b in blocks:
+        if b["type"] == "paragraph":
+            lines.extend([l.strip() for l in b["content"].split("\n") if l.strip()])
+        elif b["type"] == "list":
+            items = parse_list_items(b["content"])
+            for item in items:
+                prefix = f"{item['marker']}. " if item["is_number"] else "• "
+                lines.append(f"{prefix}{item['text']}")
+                
+    if not lines:
+        return
+        
+    table = doc.add_table(rows=1, cols=1)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    cell = table.cell(0, 0)
+    cell.width = Inches(6.5)
+    
+    _set_cell_background(cell, DOCXTheme.HEX_BG_SAGE)
+    _set_cell_margins(cell, top=120, bottom=120, left=180, right=180)
+    _set_cell_borders(
+        cell,
+        left={'val': 'single', 'sz': '36', 'color': DOCXTheme.HEX_PRIMARY, 'space': '0'},
+        top={'val': 'none'},
+        right={'val': 'none'},
+        bottom={'val': 'none'}
+    )
+    
+    first = True
+    for line in lines:
+        if first:
+            p = cell.paragraphs[0]
+            p.text = ""
+            first = False
+        else:
+            p = cell.add_paragraph()
+            
+        p.paragraph_format.space_before = Pt(2)
+        p.paragraph_format.space_after = Pt(4)
+        p.paragraph_format.line_spacing = 1.15
+        
+        parts = re.split(r'(\*\*.*?\*\*)', line)
+        for part in parts:
+            if part.startswith('**') and part.endswith('**'):
+                run = p.add_run(part[2:-2])
+                run.bold = True
+            else:
+                run = p.add_run(part)
+            run.font.name = DOCXTheme.FONT_BODY
+            run.font.size = Pt(DOCXTheme.SIZE_BODY)
+            run.font.color.rgb = DOCXTheme.RGB_TEXT
+            run.italic = True
+            
+    _prevent_row_split(table.rows[0])
+    
+    spacer = doc.add_paragraph()
+    spacer.paragraph_format.space_before = Pt(0)
+    spacer.paragraph_format.space_after = Pt(12)
+
+
+def _docx_render_consulting_table(doc: Document, rows: list[list[str]]) -> None:
+    if not rows:
+        return
+        
+    num_cols = max(len(r) for r in rows)
+    if num_cols == 0:
+        return
+        
+    table = doc.add_table(rows=len(rows), cols=num_cols)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    
+    col_w = Inches(6.5 / num_cols)
+    for col in table.columns:
+        col.width = col_w
+        
+    for r_idx, row_data in enumerate(rows):
+        row = table.rows[r_idx]
+        _prevent_row_split(row)
+        if r_idx == 0:
+            _set_repeat_header(row)
+            
+        for c_idx, cell_text in enumerate(row_data):
+            if c_idx < num_cols:
+                cell = row.cells[c_idx]
+                cell.width = col_w
+                cell.text = ""
+                p = cell.paragraphs[0]
+                p.paragraph_format.space_before = Pt(0)
+                p.paragraph_format.space_after = Pt(0)
+                p.paragraph_format.line_spacing = 1.15
+                
+                _set_cell_margins(cell, top=120, bottom=120, left=150, right=150)
+                
+                if r_idx == 0:
+                    _set_cell_background(cell, DOCXTheme.HEX_PRIMARY)
+                    _set_cell_borders(
+                        cell,
+                        top={'val':'none'}, left={'val':'none'}, right={'val':'none'},
+                        bottom={'val': 'single', 'sz': '8', 'color': DOCXTheme.HEX_PRIMARY}
+                    )
+                else:
+                    if r_idx % 2 == 0:
+                        _set_cell_background(cell, DOCXTheme.HEX_BG_LIGHT)
+                    _set_cell_borders(
+                        cell,
+                        top={'val':'none'}, left={'val':'none'}, right={'val':'none'},
+                        bottom={'val': 'single', 'sz': '4', 'color': DOCXTheme.HEX_DIVIDER}
+                    )
+                    
+                text = _clean_markdown(cell_text)
+                parts = re.split(r'(\*\*.*?\*\*)', text)
+                for part in parts:
+                    if part.startswith('**') and part.endswith('**'):
+                        run = p.add_run(part[2:-2])
+                        run.bold = True
+                    else:
+                        run = p.add_run(part)
+                        
+                    run.font.name = DOCXTheme.FONT_BODY
+                    run.font.size = Pt(9)
+                    if r_idx == 0:
+                        run.bold = True
+                        run.font.color.rgb = RGBColor(255, 255, 255)
+                    else:
+                        run.font.color.rgb = DOCXTheme.RGB_TEXT
+                        
+    spacer = doc.add_paragraph()
+    spacer.paragraph_format.space_before = Pt(0)
+    spacer.paragraph_format.space_after = Pt(8)
+
+
+def _docx_render_risk_matrix(doc: Document, block_content: str) -> None:
+    items = parse_list_items(block_content)
+    table_rows = [["Risk Event / Vulnerability", "Mitigation Strategy"]]
+    
+    for item in items:
+        text = item["text"]
+        parts = re.split(r'[:\-]', text, maxsplit=1)
+        if len(parts) >= 2:
+            risk = parts[0].strip().replace('**', '').replace('*', '')
+            mitigation = parts[1].strip()
+            table_rows.append([f"**Risk:** {risk}", mitigation])
+        else:
+            table_rows.append(["Key Vulnerability Identified", text])
+            
+    _docx_render_consulting_table(doc, table_rows)
+
+
+def _docx_render_phase_card(doc: Document, phase_title: str, lines: list[str]) -> None:
+    table = doc.add_table(rows=2, cols=1)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    cell_header = table.cell(0, 0)
+    cell_body = table.cell(1, 0)
+    
+    cell_header.width = Inches(6.5)
+    cell_body.width = Inches(6.5)
+    
+    _prevent_row_split(table.rows[0])
+    _prevent_row_split(table.rows[1])
+    
+    # Header styling
+    _set_cell_background(cell_header, DOCXTheme.HEX_PRIMARY)
+    _set_cell_margins(cell_header, top=80, bottom=80, left=150, right=150)
+    _set_cell_borders(cell_header, top={'val':'single', 'sz':'4', 'color': DOCXTheme.HEX_DIVIDER}, left={'val':'single', 'sz':'4', 'color': DOCXTheme.HEX_DIVIDER}, right={'val':'single', 'sz':'4', 'color': DOCXTheme.HEX_DIVIDER}, bottom={'val':'none'})
+    
+    p_head = cell_header.paragraphs[0]
+    p_head.paragraph_format.space_before = Pt(0)
+    p_head.paragraph_format.space_after = Pt(0)
+    run_head = p_head.add_run(phase_title.upper())
+    run_head.bold = True
+    run_head.font.name = DOCXTheme.FONT_BODY
+    run_head.font.size = Pt(9.5)
+    run_head.font.color.rgb = RGBColor(255, 255, 255)
+    
+    # Body styling
+    _set_cell_background(cell_body, DOCXTheme.HEX_BG_LIGHT)
+    _set_cell_margins(cell_body, top=120, bottom=120, left=150, right=150)
+    _set_cell_borders(cell_body, top={'val':'none'}, left={'val':'single', 'sz':'4', 'color': DOCXTheme.HEX_DIVIDER}, right={'val':'single', 'sz':'4', 'color': DOCXTheme.HEX_DIVIDER}, bottom={'val':'single', 'sz':'4', 'color': DOCXTheme.HEX_DIVIDER})
+    
+    first_item = True
+    for line in lines:
+        stripped = line.strip().replace('**', '').replace('*', '')
+        parts = re.split(r'^(\*?\*?Objective:\*?\*?|\*?\*?Deliverables:\*?\*?|\*?\*?Timeline:\*?\*?|\*?\*?Budget:\*?\*?)', stripped, flags=re.IGNORECASE)
+        
+        if first_item:
+            p_item = cell_body.paragraphs[0]
+            p_item.text = ""
+            first_item = False
+        else:
+            p_item = cell_body.add_paragraph()
+            
+        p_item.paragraph_format.space_before = Pt(2)
+        p_item.paragraph_format.space_after = Pt(2)
+        p_item.paragraph_format.line_spacing = 1.15
+        
+        if len(parts) >= 3:
+            label_part = parts[1].strip(" *:")
+            body_part = parts[2].strip()
+            
+            run_lbl = p_item.add_run(f"•  {label_part}: ")
+            run_lbl.bold = True
+            run_lbl.font.name = DOCXTheme.FONT_BODY
+            run_lbl.font.size = Pt(9.5)
+            run_lbl.font.color.rgb = DOCXTheme.RGB_PRIMARY
+            
+            run_val = p_item.add_run(body_part)
+            run_val.font.name = DOCXTheme.FONT_BODY
+            run_val.font.size = Pt(9.5)
+            run_val.font.color.rgb = DOCXTheme.RGB_TEXT
+        else:
+            run_val = p_item.add_run(f"•  {stripped}")
+            run_val.font.name = DOCXTheme.FONT_BODY
+            run_val.font.size = Pt(9.5)
+            run_val.font.color.rgb = DOCXTheme.RGB_TEXT
+            
+    spacer = doc.add_paragraph()
+    spacer.paragraph_format.space_before = Pt(0)
+    spacer.paragraph_format.space_after = Pt(8)
+
+
+# --- MAIN ORCHESTRATION PIPELINE ---
 
 def generate_docx(
     title: str,
@@ -53,15 +661,12 @@ def generate_docx(
     Returns:
         The filename of the generated document.
     """
-    # Run lightweight editorial cleanup pass
     content = _editorial_cleanup_pass(content)
-    
     OUTPUT_DIR.mkdir(exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     safe_type = sanitize_filename(document_type)
     
-    # Normalize format
     fmt = format_ext.lower().strip('.')
     if fmt not in ["docx", "pdf", "html", "md", "markdown"]:
         fmt = "docx"
@@ -85,71 +690,64 @@ def generate_docx(
         return res
 
     doc = Document()
+    gen_date = datetime.now().strftime("%B %d, %Y")
 
-    # --- Page Setup & Margins ---
-    for section in doc.sections:
-        section.top_margin = Inches(1.0)
-        section.bottom_margin = Inches(1.0)
-        section.left_margin = Inches(1.0)
-        section.right_margin = Inches(1.0)
+    # Extract H1 Title from content if present
+    extracted_title = ""
+    for line in content.split('\n'):
+        line_strip = line.strip()
+        h1_match = re.match(r'^#\s+(.+)', line_strip)
+        h1_alt_match = re.match(r'^##\s+(.+)', line_strip)
+        if h1_match or h1_alt_match:
+            match_obj = h1_match if h1_match else h1_alt_match
+            extracted_title = match_obj.group(1).strip().replace('**', '').replace('*', '')
+            break
+            
+    if extracted_title:
+        title = extracted_title
+    else:
+        clean_type = document_type.replace('_', ' ').title()
+        if len(title) > 60 or "." in title or "," in title:
+            lower_title = title.lower()
+            if "onboarding" in lower_title:
+                title = f"Customer Onboarding {clean_type}"
+            elif "activation" in lower_title:
+                title = f"Customer Activation {clean_type}"
+            elif "experience" in lower_title:
+                title = f"Customer Experience {clean_type}"
+            elif "retention" in lower_title:
+                title = f"Customer Retention {clean_type}"
+            else:
+                words = [w for w in title.split() if w.lower() not in ["a", "an", "the", "we", "need", "to", "create", "generate", "write", "develop", "provide", "design", "draft"]]
+                short_title = " ".join(words[:4]).strip(" ,.-/\\")
+                title = f"{short_title.title()} {clean_type}"
 
-    # --- Styles ---
+    # Set normal styles
     style = doc.styles['Normal']
     font = style.font
-    font.name = 'Arial'
-    font.size = Pt(11)
-    style.paragraph_format.space_after = Pt(12)
+    font.name = DOCXTheme.FONT_BODY
+    font.size = Pt(DOCXTheme.SIZE_BODY)
+    style.paragraph_format.space_after = Pt(8)
     style.paragraph_format.line_spacing = 1.15
 
-    # --- Title ---
-    title_para = doc.add_heading(level=0)
-    title_run = title_para.add_run(title)
-    title_run.font.name = 'Calibri'
-    title_run.font.size = Pt(24)
-    title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    # 1. BUILD COVER PAGE (Section 1)
+    _docx_build_cover_page(doc, title, document_type, gen_date)
 
-    # --- Subtitle ---
-    subtitle = doc.add_paragraph()
-    subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = subtitle.add_run(f"Document Type: {document_type.replace('_', ' ').title()}")
-    run.font.size = Pt(14)
-    run.font.color.rgb = RGBColor(100, 100, 100)
+    # 2. MAIN CONTENT (Section 2)
+    body_section = doc.add_section(WD_SECTION_START.NEW_PAGE)
+    body_section.top_margin = Inches(1.0)
+    body_section.bottom_margin = Inches(1.0)
+    body_section.left_margin = Inches(1.0)
+    body_section.right_margin = Inches(1.0)
+    
+    body_section.header.is_linked_to_previous = False
+    body_section.footer.is_linked_to_previous = False
+    
+    _docx_build_running_header(body_section, title, document_type)
+    _docx_build_running_footer(body_section)
 
-    # --- Date ---
-    date_para = doc.add_paragraph()
-    date_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    date_run = date_para.add_run(f"Generated: {datetime.now().strftime('%B %d, %Y')}")
-    date_run.font.size = Pt(11)
-    date_run.font.color.rgb = RGBColor(130, 130, 130)
-
-    doc.add_paragraph()  # Spacer
-
-    # --- Goal / Executive Summary ---
-    if goal:
-        h = doc.add_heading(level=1)
-        r = h.add_run("Executive Summary")
-        r.font.color.rgb = RGBColor(41, 128, 185) # Professional Blue
-        exec_summary = doc.add_paragraph(goal)
-        exec_summary.paragraph_format.space_after = Pt(12)
-
-    # --- Assumptions ---
-    if assumptions:
-        doc.add_heading("Key Assumptions", level=1)
-        for assumption in assumptions:
-            p = doc.add_paragraph(assumption, style='List Bullet')
-            p.paragraph_format.space_after = Pt(4)
-
-    # --- Main Content ---
+    # 3. RENDER CONTENT SECTIONS
     _add_content_sections(doc, content)
-
-    # --- Footer ---
-    doc.add_paragraph()
-    footer = doc.add_paragraph()
-    footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    footer_run = footer.add_run("Generated by AgentDoc — Autonomous Document Generation Agent")
-    footer_run.font.size = Pt(8)
-    footer_run.font.color.rgb = RGBColor(160, 160, 160)
-    footer_run.font.italic = True
 
     doc.save(str(filepath))
     logger.info("Generated DOCX: %s", filename)
@@ -1228,152 +1826,208 @@ def _break_long_words(text: str, max_length: int = 50) -> str:
 
 
 def _add_content_sections(doc: Document, content: str) -> None:
-    """Parse and add content sections to the document.
-
-    Handles headings (## / ###), bullet points (- / *), numbered lists,
-    and tables (| ... |).
-    """
-    lines = content.split("\n")
-    i = 0
-    in_table = False
-    table_rows: list[list[str]] = []
-
-    while i < len(lines):
-        line = lines[i].strip()
-
-        # Skip empty lines
-        if not line:
-            if in_table and table_rows:
-                _add_table(doc, table_rows)
-                table_rows = []
-                in_table = False
-            i += 1
-            continue
-
-        # Table detection
-        if line.startswith("|") and line.endswith("|"):
-            # Skip separator rows
-            if re.match(r'^\|[\s\-:|]+\|$', line):
-                i += 1
-                continue
-            cells = [c.strip() for c in line.strip("|").split("|")]
-            # Filter out empty cells at the start and end due to leading/trailing |
-            if cells and cells[0] == "":
-                cells = cells[1:]
-            if cells and cells[-1] == "":
-                cells = cells[:-1]
-            table_rows.append(cells)
-            in_table = True
-            i += 1
-            continue
-
-        # Flush any pending table
-        if in_table and table_rows:
-            _add_table(doc, table_rows)
-            table_rows = []
-            in_table = False
-
-        # Heading level 1 (##)
-        if line.startswith("## "):
-            heading_text = line[3:].strip()
-            # Clean any markdown bold markers
-            heading_text = heading_text.replace("**", "")
-            doc.add_heading(heading_text, level=1)
-            i += 1
-            continue
-
-        # Heading level 2 (###)
-        if line.startswith("### "):
-            heading_text = line[4:].strip()
-            heading_text = heading_text.replace("**", "")
-            doc.add_heading(heading_text, level=2)
-            i += 1
-            continue
-
-        # Heading level 3 (####)
-        if line.startswith("#### "):
-            heading_text = line[5:].strip()
-            heading_text = heading_text.replace("**", "")
-            doc.add_heading(heading_text, level=3)
-            i += 1
-            continue
-
-        # Bullet points
-        if line.startswith("- ") or line.startswith("* "):
-            text = line[2:].strip()
-            text = _clean_markdown(text)
-            _add_paragraph_with_formatting(doc, text, style='List Bullet')
-            i += 1
-            continue
-
-        # Numbered list (e.g., "1. ", "2. ")
-        match = re.match(r'^(\d+)\.\s+(.+)', line)
-        if match:
-            text = _clean_markdown(match.group(2))
-            _add_paragraph_with_formatting(doc, text, style='List Number')
-            i += 1
-            continue
-
-        # Regular paragraph
-        text = _clean_markdown(line)
-        if text:
-            _add_paragraph_with_formatting(doc, text)
-
-        i += 1
-
-    # Flush final table
-    if table_rows:
-        _add_table(doc, table_rows)
-
-
-def _add_paragraph_with_formatting(doc: Document, text: str, style=None):
-    """Add a paragraph while parsing inline bold markdown."""
-    p = doc.add_paragraph(style=style)
-    parts = re.split(r'(\*\*.*?\*\*)', text)
-    for part in parts:
-        if part.startswith('**') and part.endswith('**'):
-            run = p.add_run(part[2:-2])
-            run.bold = True
-        else:
-            p.add_run(part)
-    return p
-
-
-def _add_table(doc: Document, rows: list[list[str]]) -> None:
-    """Add a table to the document."""
-    if not rows:
-        return
-
-    num_cols = max(len(r) for r in rows)
-    if num_cols == 0:
-        return
+    # 1. Parse content using get_semantic_sections
+    blocks = get_semantic_sections(content)
+    
+    # 2. Extract Executive Summary blocks
+    summary_blocks = [b for b in blocks if b["section_type"] == "executive_summary" and b["type"] != "heading"]
+    other_blocks = [b for b in blocks if b["section_type"] != "executive_summary" or b["type"] == "heading"]
+    
+    # 3. Render Executive Summary (if present) inside the special panel
+    if summary_blocks:
+        p_es = doc.add_paragraph()
+        p_es.paragraph_format.space_before = Pt(12)
+        p_es.paragraph_format.space_after = Pt(6)
+        p_es.paragraph_format.keep_with_next = True
+        run = p_es.add_run("Executive Summary")
+        run.bold = True
+        run.font.name = DOCXTheme.FONT_BODY
+        run.font.size = Pt(DOCXTheme.SIZE_H1)
+        run.font.color.rgb = DOCXTheme.RGB_PRIMARY
         
-    table = doc.add_table(rows=len(rows), cols=num_cols)
-    table.style = 'Light Shading Accent 1'
-
-    for r_idx, row_data in enumerate(rows):
-        for c_idx, cell_text in enumerate(row_data):
-            if c_idx < num_cols:
-                cell = table.cell(r_idx, c_idx)
-                cell.text = "" # Clear default
-                p = cell.paragraphs[0]
-                text = _clean_markdown(cell_text)
+        _docx_render_executive_summary_panel(doc, summary_blocks)
+        
+    # 4. Render other blocks semantically
+    idx = 0
+    while idx < len(other_blocks):
+        b = other_blocks[idx]
+        b_type = b["type"]
+        b_content = b["content"]
+        sec_type = b["section_type"]
+        
+        if not b_content.strip():
+            idx += 1
+            continue
+            
+        if b_type == "heading":
+            h_text = b_content
+            h_level = b["level"]
+            
+            # Skip duplicate title headers at the top
+            if idx < 3 and "executive summary" in h_text.lower():
+                idx += 1
+                continue
                 
+            if h_level == 1:
+                p_head = doc.add_paragraph()
+                p_head.paragraph_format.space_before = Pt(18)
+                p_head.paragraph_format.space_after = Pt(8)
+                p_head.paragraph_format.keep_with_next = True
+                
+                # Apply top border as section divider line
+                if idx > 2:
+                    _set_paragraph_top_border(p_head, hex_color=DOCXTheme.HEX_DIVIDER, size=4)
+                    
+                run = p_head.add_run(h_text)
+                run.bold = True
+                run.font.name = DOCXTheme.FONT_BODY
+                run.font.size = Pt(DOCXTheme.SIZE_H1)
+                run.font.color.rgb = DOCXTheme.RGB_PRIMARY
+                
+            elif h_level in [2, 3] and sec_type == "timeline" and h_text.lower().startswith("phase"):
+                # Phase Timeline card lookahead
+                phase_lines = []
+                if idx + 1 < len(other_blocks) and other_blocks[idx + 1]["type"] == "list":
+                    list_b = other_blocks[idx + 1]
+                    phase_lines = [l.strip() for l in list_b["content"].split("\n") if l.strip()]
+                    idx += 1 # Consume list block
+                else:
+                    phase_lines = ["Objective: Execute defined timeline roadmap steps."]
+                    
+                _docx_render_phase_card(doc, h_text, phase_lines)
+                idx += 1
+                continue
+                
+            elif h_level == 2:
+                p_head = doc.add_paragraph()
+                p_head.paragraph_format.space_before = Pt(14)
+                p_head.paragraph_format.space_after = Pt(6)
+                p_head.paragraph_format.keep_with_next = True
+                run = p_head.add_run(h_text)
+                run.bold = True
+                run.font.name = DOCXTheme.FONT_BODY
+                run.font.size = Pt(DOCXTheme.SIZE_H2)
+                run.font.color.rgb = DOCXTheme.RGB_SECONDARY
+                
+            else:
+                p_head = doc.add_paragraph()
+                p_head.paragraph_format.space_before = Pt(10)
+                p_head.paragraph_format.space_after = Pt(4)
+                p_head.paragraph_format.keep_with_next = True
+                run = p_head.add_run(h_text)
+                run.bold = True
+                run.font.name = DOCXTheme.FONT_BODY
+                run.font.size = Pt(DOCXTheme.SIZE_H3)
+                run.font.color.rgb = DOCXTheme.RGB_SECONDARY
+                
+        elif b_type == "list":
+            if sec_type == "risks":
+                _docx_render_risk_matrix(doc, b_content)
+                idx += 1
+                continue
+                
+            items = parse_list_items(b_content)
+            for item in items:
+                style_name = 'List Bullet'
+                prefix = ""
+                if item["is_checkbox"] or sec_type in ["assumptions", "deliverables"]:
+                    style_name = 'Normal'
+                    box_char = "☑  " if item["checked"] or sec_type == "deliverables" else "☐  "
+                    prefix = f"{box_char}"
+                elif item["is_number"]:
+                    style_name = 'List Number'
+                    
+                p_li = doc.add_paragraph(style=style_name)
+                p_li.paragraph_format.space_before = Pt(0)
+                p_li.paragraph_format.space_after = Pt(3)
+                p_li.paragraph_format.line_spacing = 1.15
+                
+                indent_pt = 18 + (item["level"] * 18)
+                p_li.paragraph_format.left_indent = Pt(indent_pt)
+                
+                if prefix:
+                    run_pref = p_li.add_run(prefix)
+                    run_pref.font.name = DOCXTheme.FONT_BODY
+                    run_pref.font.size = Pt(DOCXTheme.SIZE_BODY)
+                    run_pref.font.color.rgb = DOCXTheme.RGB_PRIMARY
+                    run_pref.bold = True
+                    
+                text = _clean_markdown(item["text"])
                 parts = re.split(r'(\*\*.*?\*\*)', text)
                 for part in parts:
                     if part.startswith('**') and part.endswith('**'):
-                        run = p.add_run(part[2:-2])
+                        run = p_li.add_run(part[2:-2])
                         run.bold = True
                     else:
-                        p.add_run(part)
-                        
-                # Bold header row
-                if r_idx == 0:
-                    for paragraph in cell.paragraphs:
-                        for run in paragraph.runs:
+                        run = p_li.add_run(part)
+                    run.font.name = DOCXTheme.FONT_BODY
+                    run.font.size = Pt(DOCXTheme.SIZE_BODY)
+                    run.font.color.rgb = DOCXTheme.RGB_TEXT
+                    
+        elif b_type == "table":
+            table_rows = []
+            for row_line in b_content.split("\n"):
+                row_line = row_line.strip()
+                if row_line.startswith("|") and row_line.endswith("|"):
+                    if not re.match(r'^\|[\s\-:|]+\|$', row_line):
+                        cells = [c.strip() for c in row_line.strip("|").split("|")]
+                        if cells and cells[0] == "":
+                            cells = cells[1:]
+                        if cells and cells[-1] == "":
+                            cells = cells[:-1]
+                        table_rows.append(cells)
+            if table_rows:
+                _docx_render_consulting_table(doc, table_rows)
+                
+        elif b_type == "blockquote":
+            text = b_content.lstrip(">").strip()
+            _docx_render_callout_box(doc, text, DOCXTheme.HEX_SECONDARY, DOCXTheme.HEX_BG_LIGHT, text_style="I")
+            
+        else:
+            if sec_type == "objectives" and len(b_content) > 30:
+                _docx_render_callout_box(doc, b_content, DOCXTheme.HEX_PRIMARY, DOCXTheme.HEX_BG_LIGHT)
+                idx += 1
+                continue
+                
+            lines = [l.strip() for l in b_content.split("\n") if l.strip()]
+            for line in lines:
+                if line.startswith("- ") or line.startswith("* "):
+                    p_li = doc.add_paragraph(style='List Bullet')
+                    p_li.paragraph_format.space_before = Pt(0)
+                    p_li.paragraph_format.space_after = Pt(3)
+                    p_li.paragraph_format.line_spacing = 1.15
+                    p_li.paragraph_format.left_indent = Pt(18)
+                    
+                    text = _clean_markdown(line[2:])
+                    parts = re.split(r'(\*\*.*?\*\*)', text)
+                    for part in parts:
+                        if part.startswith('**') and part.endswith('**'):
+                            run = p_li.add_run(part[2:-2])
                             run.bold = True
-
-    doc.add_paragraph()  # Spacer after table
+                        else:
+                            run = p_li.add_run(part)
+                        run.font.name = DOCXTheme.FONT_BODY
+                        run.font.size = Pt(DOCXTheme.SIZE_BODY)
+                        run.font.color.rgb = DOCXTheme.RGB_TEXT
+                else:
+                    p = doc.add_paragraph()
+                    p.paragraph_format.space_before = Pt(0)
+                    p.paragraph_format.space_after = Pt(8)
+                    p.paragraph_format.line_spacing = 1.15
+                    
+                    text = _clean_markdown(line)
+                    parts = re.split(r'(\*\*.*?\*\*)', text)
+                    for part in parts:
+                        if part.startswith('**') and part.endswith('**'):
+                            run = p.add_run(part[2:-2])
+                            run.bold = True
+                        else:
+                            run = p.add_run(part)
+                        run.font.name = DOCXTheme.FONT_BODY
+                        run.font.size = Pt(DOCXTheme.SIZE_BODY)
+                        run.font.color.rgb = DOCXTheme.RGB_TEXT
+                        
+        idx += 1
 
 
 def _clean_markdown(text: str) -> str:
