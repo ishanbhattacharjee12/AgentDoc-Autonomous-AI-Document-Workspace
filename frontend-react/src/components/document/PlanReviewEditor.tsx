@@ -168,14 +168,14 @@ export const PlanReviewEditor: React.FC<PlanReviewEditorProps> = ({
         </CardContent>
       </Card>
 
-      {/* Resume button — right-aligned, prominent */}
-      <div className="flex justify-end">
+      {/* Resume button — centered, prominent */}
+      <div className="flex justify-center">
         <Button
           onClick={onResume}
           disabled={plan.length === 0}
-          className="font-semibold px-8 py-6 h-auto text-sm gap-2"
+          className="font-semibold px-8 py-6 h-auto text-base gap-3"
         >
-          <Play className="h-4 w-4 fill-primary-foreground" /> Resume Execution Stream
+          <Play className="h-5 w-5 fill-primary-foreground" /> Resume Execution Stream
         </Button>
       </div>
     </div>
