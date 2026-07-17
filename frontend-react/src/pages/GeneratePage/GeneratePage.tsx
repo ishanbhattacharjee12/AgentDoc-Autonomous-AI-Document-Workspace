@@ -570,9 +570,9 @@ Example: "Create a Software Requirements Specification for an e-commerce platfor
               <Button
                 type="submit"
                 disabled={!requestText.trim()}
-                className="font-semibold px-8 py-6 h-auto text-sm gap-2"
+                className="font-semibold px-8 py-6 h-auto text-[15px] gap-2.5"
               >
-                <Sparkles className="h-4 w-4" /> Run Agent Pipeline
+                <Sparkles className="h-[18px] w-[18px]" /> Run Agent Pipeline
               </Button>
             </div>
           </form>
