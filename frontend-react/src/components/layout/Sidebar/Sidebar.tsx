@@ -114,7 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <FileText className="h-6.5 w-6.5" />
           </div>
           <div className="flex flex-col justify-center min-w-0">
-            <span className="font-extrabold text-foreground tracking-tight text-[25px] block leading-none">AgentDoc</span>
+            <span className="font-extrabold text-foreground tracking-tight text-[30px] block leading-none">AgentDoc</span>
             <span className="text-[9px] text-muted-foreground/85 font-semibold uppercase tracking-wider mt-1.5 block truncate">AI Document Workspace</span>
           </div>
         </div>
@@ -163,51 +163,53 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex-1" />
         
         {/* WORKSPACE INSIGHTS sidebar card */}
-        <div className="mx-4 my-3 p-3 bg-background border border-[#E3E5DE] rounded-lg text-left hidden md:block select-none shadow-2xs">
-          <span className="text-[10px] font-bold text-[#5C6B63] uppercase tracking-wider block mb-2.5">
-            WORKSPACE INSIGHTS
-          </span>
-          
-          <div className="space-y-3 mb-3.5">
-            <div className="flex justify-between items-center text-xs">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <FileText className="h-3.5 w-3.5 text-muted-foreground/70" />
-                <span>Documents</span>
+        <div className="mx-4 my-3 p-4 bg-background border border-[#E3E5DE] rounded-lg text-left hidden md:block select-none shadow-2xs min-h-[235px] flex flex-col justify-between">
+          <div>
+            <span className="text-[10px] font-bold text-[#5C6B63] uppercase tracking-wider block mb-3.5">
+              WORKSPACE INSIGHTS
+            </span>
+            
+            <div className="space-y-4 mb-4">
+              <div className="flex justify-between items-center text-xs">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <FileText className="h-3.5 w-3.5 text-muted-foreground/70" />
+                  <span>Documents</span>
+                </div>
+                <span className="font-bold text-foreground">{entries.length}</span>
               </div>
-              <span className="font-bold text-foreground">{entries.length}</span>
-            </div>
 
-            <div className="flex justify-between items-center text-xs">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Sparkles className="h-3.5 w-3.5 text-amber-500/80" />
-                <span>Avg Quality</span>
+              <div className="flex justify-between items-center text-xs">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-500/80" />
+                  <span>Avg Quality</span>
+                </div>
+                <span className="font-bold text-foreground">{avgQuality}</span>
               </div>
-              <span className="font-bold text-foreground">{avgQuality}</span>
-            </div>
 
-            <div className="flex justify-between items-center text-xs">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Zap className="h-3.5 w-3.5 text-muted-foreground/70" />
-                <span>Avg Time</span>
+              <div className="flex justify-between items-center text-xs">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Zap className="h-3.5 w-3.5 text-muted-foreground/70" />
+                  <span>Avg Time</span>
+                </div>
+                <span className="font-bold text-foreground">{avgTime} sec</span>
               </div>
-              <span className="font-bold text-foreground">{avgTime} sec</span>
-            </div>
 
-            <div className="flex justify-between items-center text-xs">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Brain className="h-3.5 w-3.5 text-purple-500/80" />
-                <span>Preferred Mode</span>
+              <div className="flex justify-between items-center text-xs">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Brain className="h-3.5 w-3.5 text-purple-500/80" />
+                  <span>Preferred Mode</span>
+                </div>
+                <span className="font-bold text-foreground">{preferredMode}</span>
               </div>
-              <span className="font-bold text-foreground">{preferredMode}</span>
             </div>
           </div>
 
           {/* Monthly Usage section */}
-          <div className="border-t border-[#E3E5DE] pt-3">
-            <span className="text-[10px] font-bold text-[#5C6B63] uppercase tracking-wider block mb-2">
+          <div className="border-t border-[#E3E5DE] pt-4 mt-2">
+            <span className="text-[10px] font-bold text-[#5C6B63] uppercase tracking-wider block mb-2.5">
               MONTHLY USAGE
             </span>
-            <div className="h-1 w-full bg-[#EDF3EF] dark:bg-muted rounded-full overflow-hidden mb-1.5">
+            <div className="h-1 w-full bg-[#EDF3EF] dark:bg-muted rounded-full overflow-hidden mb-2">
               <div 
                 className="h-full bg-teal-500 rounded-full transition-all duration-300"
                 style={{ width: `${Math.min(100, (activeUsed / activeLimit) * 100)}%` }}
