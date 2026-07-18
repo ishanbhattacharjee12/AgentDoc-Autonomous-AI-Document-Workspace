@@ -31,6 +31,44 @@ import { deriveDocumentTitle, deriveDocumentSummary } from '@/utils/historyHelpe
 
 type PageStatus = 'idle' | 'planning' | 'executing' | 'synthesizing' | 'reflecting' | 'generating' | 'reviewing' | 'completed' | 'error'
 
+const getStageHeaderInfo = (stage: string) => {
+  const s = stage.toLowerCase()
+  if (s.includes('plan')) {
+    return {
+      title: "Planning Document...",
+      subtitle: "The agent is establishing assumptions and building an optimized execution plan."
+    }
+  }
+  if (s.includes('execut')) {
+    return {
+      title: "Executing Research...",
+      subtitle: "The agent is researching, gathering context, and running plan tasks sequentially."
+    }
+  }
+  if (s.includes('synth')) {
+    return {
+      title: "Synthesizing Document...",
+      subtitle: "The agent is dynamically drafting and structuring your request in real time."
+    }
+  }
+  if (s.includes('reflect')) {
+    return {
+      title: "Reflecting & Refining...",
+      subtitle: "The agent is self-correcting, auditing quality, and polishing the final output."
+    }
+  }
+  if (s.includes('document') || s.includes('pdf') || s.includes('generat')) {
+    return {
+      title: "Generating File...",
+      subtitle: "The agent is compiling the finalized content into your requested document format."
+    }
+  }
+  return {
+    title: "Synthesizing Document...",
+    subtitle: "The agent is dynamically drafting and structuring your request in real time."
+  }
+}
+
 export const GeneratePage: React.FC = () => {
   const location = useLocation()
   const navigate = useNavigate()
@@ -582,11 +620,16 @@ Example: "Create a Software Requirements Specification for an e-commerce platfor
       {/* 2. Loading & Streaming State */}
       {status !== 'idle' && status !== 'reviewing' && status !== 'completed' && status !== 'error' && (
         <div className="flex flex-col gap-6 animate-[fadeIn_0.3s_ease-out]">
-          <SectionHeader 
-            title="Synthesizing Document..." 
-            subtitle="The agent is dynamically drafting and structuring your request in real time."
-            actions={<StreamToolbar onCancel={handleCancel} />}
-          />
+          {(() => {
+            const headerInfo = getStageHeaderInfo(stageName)
+            return (
+              <SectionHeader 
+                title={headerInfo.title} 
+                subtitle={headerInfo.subtitle}
+                actions={<StreamToolbar onCancel={handleCancel} />}
+              />
+            )
+          })()}
           
           {/* Stage Tracker Pipeline Flow */}
           <StageTracker currentStage={stageName} />

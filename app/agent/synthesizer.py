@@ -45,6 +45,7 @@ def synthesize(
             user_prompt,
             temperature=0.5,
             max_tokens=4000,
+            profile="deep_analysis",
             token_callback=token_cb,
         )
         logger.info("Synthesis completed: %d characters", len(draft))

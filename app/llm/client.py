@@ -8,9 +8,11 @@ import json
 import logging
 import re
 import time
+import contextvars
 from typing import Optional
 
 import openai
+import httpx
 
 from app.config import (
     LLM_PROVIDER,
@@ -24,6 +26,37 @@ from app.llm.demo import _demo_response
 from app.llm.budget_guard import check_budget_pre_llm, check_budget_post_llm
 
 logger = logging.getLogger(__name__)
+
+# Context variable to store connection timing information for the active LLM request
+_llm_timing_data = contextvars.ContextVar("llm_timing_data", default=None)
+
+class InstrumentedTransport(httpx.HTTPTransport):
+    """Custom HTTP transport that intercepts requests to gather low-level timing data."""
+    def handle_request(self, request, *args, **kwargs):
+        timing = _llm_timing_data.get()
+        if timing is not None:
+            # Default connection to reused unless connect_tcp.started fires
+            timing["connection_reused"] = True
+            
+            def trace_callback(event_name, info):
+                t = time.perf_counter()
+                if event_name == "connection.connect_tcp.started":
+                    request.extensions["connect_tcp_start"] = t
+                    timing["connection_reused"] = False
+                elif event_name == "connection.connect_tcp.complete":
+                    start_t = request.extensions.get("connect_tcp_start")
+                    if start_t is not None:
+                        timing["connect_tcp_duration"] = t - start_t
+                elif event_name == "connection.start_tls.started":
+                    request.extensions["start_tls_start"] = t
+                elif event_name == "connection.start_tls.complete":
+                    start_t = request.extensions.get("start_tls_start")
+                    if start_t is not None:
+                        timing["start_tls_duration"] = t - start_t
+            
+            request.extensions["trace"] = trace_callback
+            
+        return super().handle_request(request, *args, **kwargs)
 
 _client: Optional[openai.Client] = None
 _global_llm_calls: int = 0
@@ -66,9 +99,17 @@ def get_client() -> openai.Client:
     if _client is None:
         if not LLM_API_KEY:
             raise RuntimeError("LLM_API_KEY is not configured.")
+        transport = InstrumentedTransport()
+        # Set max_keepalive_connections=5 to enable connection pooling/reuse
+        http_client = httpx.Client(
+            transport=transport,
+            limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
+            timeout=120.0
+        )
         _client = openai.Client(
             api_key=LLM_API_KEY,
-            base_url=LLM_BASE_URL
+            base_url=LLM_BASE_URL,
+            http_client=http_client
         )
     return _client
 
@@ -185,9 +226,16 @@ def call_llm(
     call_timeout = timeout or 120
 
     for attempt in range(2):
+        # Initialize timing dictionary for the socket-level tracing callbacks
+        timing = {
+            "connect_tcp_duration": None,
+            "start_tls_duration": None,
+            "connection_reused": True,
+        }
+        token = _llm_timing_data.set(timing)
+        start_time = time.time()
+        
         try:
-            start_time = time.time()
-            
             kwargs = {}
             if json_mode and model_profile.supports_json:
                 kwargs["response_format"] = {"type": "json_object"}
@@ -387,33 +435,141 @@ def call_llm(
             visible_completion_tokens = max(0, completion_tokens_val - reasoning_tokens_val)
             check_budget_post_llm(visible_completion_tokens, elapsed_time, model_name)
 
-            # Extract content natively
-            # Check for provider-specific reasoning fields
+            # Validate that the provider returned actual content
             if not content:
-                raise RuntimeError("Unexpected LLM call failure: LLM returned empty response.")
+                if attempt == 0:
+                    # Log the empty response attempt before retrying
+                    attempt_duration = time.time() - start_time
+                    from app.metrics import _current_stage
+                    logger.info(json.dumps({
+                        "log_type": "timing_instrumentation",
+                        "stage": _current_stage.get(),
+                        "substep": "llm_call",
+                        "model": model_name,
+                        "attempt_number": attempt,
+                        "request_sent_timestamp": start_time,
+                        "response_received_timestamp": start_time + attempt_duration,
+                        "duration_ms": round(attempt_duration * 1000.0, 2),
+                        "connection_reused": timing.get("connection_reused", True),
+                        "dns_tcp_duration_ms": round(timing["connect_tcp_duration"] * 1000.0, 2) if timing.get("connect_tcp_duration") else 0.0,
+                        "tls_handshake_duration_ms": round(timing["start_tls_duration"] * 1000.0, 2) if timing.get("start_tls_duration") else 0.0,
+                        "status": "failed",
+                        "error": f"LLM returned empty response (finish_reason={finish_reason})"
+                    }))
+                    _llm_timing_data.reset(token)
+
+                    logger.warning(
+                        "LLM returned empty response (model=%s, finish_reason=%s, sse_events=%d, elapsed=%.1fs). Retrying...",
+                        model_name, finish_reason, sse_events, elapsed_time
+                    )
+                    time.sleep(2)
+                    continue
+                raise RuntimeError(
+                    f"LLM returned empty response after retry (model={model_name}, "
+                    f"finish_reason={finish_reason}, prompt_tokens={getattr(final_usage, 'prompt_tokens', '?') if final_usage else '?'})"
+                )
                 
             # Strip reasoning tags if model profile indicates it's a reasoning model
             if model_profile.reasoning:
                 content = strip_reasoning_tags(content)
 
-            return content.strip()
+            content = content.strip()
+            if not content:
+                if attempt == 0:
+                    # Log the empty response attempt before retrying
+                    attempt_duration = time.time() - start_time
+                    from app.metrics import _current_stage
+                    logger.info(json.dumps({
+                        "log_type": "timing_instrumentation",
+                        "stage": _current_stage.get(),
+                        "substep": "llm_call",
+                        "model": model_name,
+                        "attempt_number": attempt,
+                        "request_sent_timestamp": start_time,
+                        "response_received_timestamp": start_time + attempt_duration,
+                        "duration_ms": round(attempt_duration * 1000.0, 2),
+                        "connection_reused": timing.get("connection_reused", True),
+                        "dns_tcp_duration_ms": round(timing["connect_tcp_duration"] * 1000.0, 2) if timing.get("connect_tcp_duration") else 0.0,
+                        "tls_handshake_duration_ms": round(timing["start_tls_duration"] * 1000.0, 2) if timing.get("start_tls_duration") else 0.0,
+                        "status": "failed",
+                        "error": "LLM content became empty after stripping reasoning tags"
+                    }))
+                    _llm_timing_data.reset(token)
 
-        except openai.RateLimitError as e:
-            if attempt == 0:
-                logger.warning("Rate limit hit, retrying after delay: %s", e)
-                time.sleep(2)
-                continue
-            raise RuntimeError(f"Rate limit exceeded: {_sanitize_error(e)}") from e
-        except openai.AuthenticationError as e:
-            raise RuntimeError("LLM authentication failed. Check your API key.") from e
-        except openai.APIError as e:
-            if attempt == 0:
-                logger.warning("Transient LLM error (attempt %d): %s", attempt + 1, e)
-                time.sleep(1)
-                continue
-            raise RuntimeError(f"LLM API error: {_sanitize_error(e)}") from e
+                    logger.warning(
+                        "LLM content became empty after stripping reasoning tags (model=%s). Retrying...",
+                        model_name
+                    )
+                    time.sleep(2)
+                    continue
+                raise RuntimeError(
+                    f"LLM response contained only reasoning tags with no visible content (model={model_name})"
+                )
+
+            # Log successful timing
+            attempt_duration = time.time() - start_time
+            from app.metrics import _current_stage
+            logger.info(json.dumps({
+                "log_type": "timing_instrumentation",
+                "stage": _current_stage.get(),
+                "substep": "llm_call",
+                "model": model_name,
+                "attempt_number": attempt,
+                "request_sent_timestamp": start_time,
+                "response_received_timestamp": start_time + attempt_duration,
+                "duration_ms": round(attempt_duration * 1000.0, 2),
+                "tokens_in": getattr(final_usage, "prompt_tokens", len(system_prompt + user_prompt) // 4) if final_usage else len(system_prompt + user_prompt) // 4,
+                "tokens_out": getattr(final_usage, "completion_tokens", len(content) // 4) if final_usage else len(content) // 4,
+                "connection_reused": timing.get("connection_reused", True),
+                "dns_tcp_duration_ms": round(timing["connect_tcp_duration"] * 1000.0, 2) if timing.get("connect_tcp_duration") else 0.0,
+                "tls_handshake_duration_ms": round(timing["start_tls_duration"] * 1000.0, 2) if timing.get("start_tls_duration") else 0.0,
+                "ttft_ms": round(ttft * 1000.0, 2) if ttft else 0.0,
+                "status": "success"
+            }))
+            _llm_timing_data.reset(token)
+            return content
+
         except Exception as e:
-            raise RuntimeError(f"Unexpected LLM call failure: {_sanitize_error(e)}") from e
+            # Log failure timing
+            attempt_duration = time.time() - start_time
+            from app.metrics import _current_stage
+            logger.info(json.dumps({
+                "log_type": "timing_instrumentation",
+                "stage": _current_stage.get(),
+                "substep": "llm_call",
+                "model": model_name,
+                "attempt_number": attempt,
+                "request_sent_timestamp": start_time,
+                "response_received_timestamp": time.time(),
+                "duration_ms": round(attempt_duration * 1000.0, 2),
+                "connection_reused": timing.get("connection_reused", True),
+                "dns_tcp_duration_ms": round(timing["connect_tcp_duration"] * 1000.0, 2) if timing.get("connect_tcp_duration") else 0.0,
+                "tls_handshake_duration_ms": round(timing["start_tls_duration"] * 1000.0, 2) if timing.get("start_tls_duration") else 0.0,
+                "status": "failed",
+                "error": str(e)
+            }))
+            _llm_timing_data.reset(token)
+
+            # Route exception to correct control path
+            if isinstance(e, openai.RateLimitError):
+                if attempt == 0:
+                    logger.warning("Rate limit hit, retrying after delay: %s", e)
+                    time.sleep(2)
+                    continue
+                raise RuntimeError(f"Rate limit exceeded: {_sanitize_error(e)}") from e
+            elif isinstance(e, openai.AuthenticationError):
+                raise RuntimeError("LLM authentication failed. Check your API key.") from e
+            elif isinstance(e, openai.APIError):
+                if attempt == 0:
+                    logger.warning("Transient LLM error (attempt %d): %s", attempt + 1, e)
+                    time.sleep(1)
+                    continue
+                raise RuntimeError(f"LLM API error: {_sanitize_error(e)}") from e
+            elif isinstance(e, RuntimeError):
+                # Re-raise empty response after retry, or budget violations directly
+                raise
+            else:
+                raise RuntimeError(f"Unexpected LLM call failure: {_sanitize_error(e)}") from e
 
     raise RuntimeError("LLM call failed unexpectedly.")
 

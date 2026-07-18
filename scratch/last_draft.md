@@ -1,84 +1,137 @@
-# Project Plan: Remote Software Product Launch
+# Onboarding Improvement Plan
+
+| Priority | Risk | Investment | Timeline | Expected ROI | Confidence |
+|---|---|---|---|---|---|
+| Compress TTFV and lift activation via instrumented visibility, standardized playbooks, and targeted automation | Engineering throughput shortfall; unverified baseline metrics | $50K cap (uses $40K, $10K buffer) | 90 days | $1.8M ARR pipeline recovery; CAC payback 19→12 mo | Medium-High |
 
 ## Executive Summary
-**Problem**: Launching a new software product with a fully remote team requires synchronized planning to overcome communication barriers and ensure alignment on goals, roles, and execution.
-**Approach**: A phased, structured plan focusing on upfront alignment, rigorous risk management, and clear governance via a RACI matrix to enable distributed decision-making.
-**Business Impact**: Enables a timely market entry, maximizes resource utilization, and establishes a scalable process for future remote product launches.
-**Recommendation**: Prioritize the execution of all predefined phases, with immediate focus on stakeholder alignment and risk identification.
-**Expected Outcome**: A fully launched, compliant product that meets business objectives, delivered on schedule by a cohesive remote team.
-**Estimated Timeline**: 20-24 weeks, including a 15% contingency buffer.
 
-## Decision Snapshot
-| Priority | Risk | Investment | Timeline | Expected ROI | Confidence |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **High** | **Medium** (Scope Creep, Communication Lags) | **Budget & Resources Approved** | **20-24 Weeks** | **To Be Quantified in Phase 1** | **High** (Based on stakeholder alignment) |
+**Problem:** Onboarding operates as a fragmented system across self-serve, sales-assisted, and engineering-led provisioning. Median Time-to-First-Value (TTFV) is 14.2 days against a 3-day target, 7-day activation sits at 38%, and 27% of new logos churn within 30 days. The failure drives $1.8M in delayed ARR, extends self-serve CAC payback to 19 months, and consumes 22% of AE capacity on manual hand-holding.
+
+**Approach:** Execute a 90-day, three-phase plan under a $50K budget and partial team capacity. Sequence low-cost instrumentation and enablement quick wins first, validate hypotheses via controlled experiments, then scale proven changes. Prioritize unified metrics, standardized 30/60/90 playbooks, automated access provisioning, and a centralized documentation hub.
+
+**Business Impact:** Recovering delayed pipeline and compressing TTFV by 79% reduces revenue risk and restores sales productivity. Targeted automation and in-product guidance cut onboarding ticket share from 41% to 15%, freeing Tier-1 capacity and reducing quarterly support burden by an estimated $60K.
+
+**Recommendation:** Launch Day-1 funnel audit and weekly leadership metric pack; deploy buddy assignment and pulse survey within week 2; centralize docs and ship 30/60/90 templates by week 5; automate HRIS–IT provisioning by week 9. Hold scope discipline against the $50K ceiling with deferral rights on non-critical build.
+
+**Expected Outcome:** Median TTFV reduced to ≤3 days, 7-day activation lifted to 65%, Day-30 retention to 88%, and onboarding ticket share cut to 15%. Self-serve CAC payback restored to 12 months.
+
+**Estimated Timeline:** 90 days (Quick Wins Days 1–30; Experimental Days 31–60; Scale Days 61–90).
 
 ## Key Takeaways
-- Upfront alignment on objectives and scope is critical to prevent derailment in a remote context.
-- A defined RACI matrix is non-negotiable for clarifying remote authority and accountability.
-- Proactive, documented risk mitigation is the primary defense against remote collaboration pitfalls.
-- Compliance and operational clearance must be integrated early to avoid final launch delays.
 
-## Objectives & Scope
-**Objectives**: To launch the defined software product to market, meeting all specified functional and compliance requirements within the approved timeline and budget.
-**In-Scope**: Product development, remote team coordination, stakeholder management, risk mitigation, and compliance clearance.
-**Out-of-Scope**: Post-launch scaling, marketing campaigns, and long-term maintenance planning.
+- Onboarding breakage is systemic: unmeasured handoffs, no product-guided value path, and unscaled human touch drive 27% early churn.
+- $50K and partial capacity mandate phased delivery—instrument and enable before building.
+- Five hypotheses (H1–H5) prioritized by impact/effort yield a $40K execution plan with $10K buffer.
+- Weekly leadership reporting is satisfied by Day-10 via lightweight pulse and dashboard, not heavy custom engineering.
+- Primary risk is engineering throughput; mitigate via no-code help layer and phased deferral in Scale phase.
 
-## Consolidated Findings & Analysis
-The plan synthesizes inputs across all phases to create a unified execution strategy.
+## Problem Framing & Baseline Analysis
 
-| Phase | Core Insight | Critical Success Factor |
-| :--- | :--- | :--- |
-| **Phase 1** | Clear, measurable goals are the foundation for remote team focus. | Executive sponsorship and unambiguous success metrics. |
-| **Phase 2** | Rigorous scope definition prevents costly remote work misalignment. | A formal sign-off from the engineering team on capacity and deliverables. |
-| **Phase 4** | Ambiguity in remote roles leads to decision paralysis. | A published RACI matrix accessible to all team members. |
-| **Phase 5** | Remote teams are vulnerable to communication and dependency risks. | A living risk register with assigned owners and mitigation actions. |
-| **Phase 6** | Compliance is a launch gate, not a final step. | Early engagement with compliance officers and a clear audit trail. |
+### Summary
+The current onboarding motion fractures across three paths—self-serve signup, manual sales-assisted provisioning, and engineering-led workspace configuration—with no unified SLA or instrumented handoff. Internal funnel telemetry from the trailing Q3 90-day cohort shows a median TTFV of 14.2 days versus a 3-day target, a 38% 7-day activation rate, and 27% Day-0–30 churn. Support load is dominated by onboarding blockers, and sales productivity leaks to manual hand-holding.
 
-## Strategic Recommendations
-**Immediate (Next 2 Weeks)**:
-- Secure formal sign-off on the project charter and RACI matrix from all remote leads.
-- Initiate the final compliance standards analysis with the security team.
+Root causes cluster into process (ad hoc handoffs), product (no empty-state guidance or health scoring), enablement (tribal CSM knowledge), and data (blind attribution). Under a $50K cap and partial capacity, the plan must buy visibility and standardize motion before custom builds. Open questions on tier variance, automation ceiling, and CSM capacity are assigned to owners with Week-1 to Week-3 close timelines.
 
-**Short-Term (Months 1-3)**:
-- Conduct weekly cross-functional syncs using structured agendas to combat communication silos.
-- Implement a centralized documentation repository for all project artifacts and decisions.
+### Key Findings
+- Median TTFV of 14.2 days drives $1.8M ARR pipeline delay across 75 logos averaging $24K deal size.
+- 41% of Week-1 inbound tickets are onboarding-blockers (auth, provisioning, data import), equaling $94K quarterly Tier-1 cost.
+- No end-to-end onboarding event instrumentation creates attribution blind spots and prevents SLA enforcement.
+- CSMs operate on tribal knowledge with no certified milestones; 22% of AE time is spent on onboarding hand-holding.
+- Baseline gaps: 7-day activation -27pp, Day-30 retention -15pp, onboarding ticket share -26pp vs targets.
 
-**Long-Term (Months 4+)**:
-- Develop a post-launch retrospective template focused on remote collaboration effectiveness.
-- Establish a recurring cadence for re-assessing team capacity against project milestones.
+### Recommendations
+- Immediate: Commission Data/RevOps to close TTFV variance by tier (Week 2); Eng Lead to size provisioning automation ceiling under $50K (Week 1).
+- Short-Term: Formalize unified onboarding SLA across sales, CS, and eng; stand up end-to-end event instrumentation by Day 10.
+- Long-Term: Institutionalize health scoring and progressive provisioning in product roadmap beyond the 90-day window.
 
-## Risk Register
-| Risk ID | Description | Impact | Probability | Mitigation Strategy | Owner |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| R1 | **Scope Creep**: Uncontrolled addition of features due to poor remote feedback loops. | High | Medium | Strict change control process; weekly scope review with product owner. | Project Manager |
-| R2 | **Communication Breakdown**: Critical information not reaching all remote team members. | High | High | Mandate core overlap hours; use asynchronous video updates; centralize comms. | Team Leads |
-| R3 | **Dependency Delays**: Blocked tasks due to uncoordinated remote work streams. | Medium | High | Map all cross-team dependencies upfront; assign dependency owners in RACI. | Engineering Lead |
-| R4 | **Compliance Failure**: Missing a regulatory requirement discovered late in the process. | Critical | Low | Integrate compliance checks at each phase gate; engage legal early. | Compliance Officer |
+### Risks & Tradeoffs
+**Primary Risk:** Unverified baseline metrics distort target-setting and ROI projection.
+**Mitigation:** Validate via HRIS and product analytics pull by Week 1; recalibrate priority matrix if variance exceeds 15%.
+**Tradeoff:** $50K cap forces deferral of custom eng builds in favor of playbook and instrumentation quick wins, slowing platform automation.
 
-## Project Assumptions
-1.  The project sponsor and key stakeholders remain engaged and aligned on objectives throughout the project lifecycle.
-2.  The core remote team possesses the necessary skills and has been allocated with sufficient bandwidth (80% allocation assumed).
-3.  Standard development and collaboration tools (e.g., Git, Jira, Slack, Zoom) are approved and available for immediate use.
+### Deliverables
+- Current state diagnostic with quantified funnel deficiencies
+- Business impact table (revenue, CAC payback, sales productivity, support cost)
+- Root cause cluster map (process, product, enablement, data)
+- Open questions register with owners and close timelines
+- Baseline metrics summary table with gap analysis
 
-## Key Deliverables
-1.  **Project Charter & RACI Matrix**: Approved document defining goals, scope, and all roles/responsibilities.
-2.  **Risk Register & Mitigation Plan**: Living document tracking all identified risks, owners, and actions.
-3.  **Compliance Clearance Certificate**: Final sign-off from relevant authorities confirming operational readiness.
+### Conclusion
+Onboarding fails as a system, not a feature. The baseline confirms that instrumented visibility and standardized motion are prerequisites to any funded automation under constraint.
 
-## Implementation Timeline & Roadmap
-*   **Phase 1: Project Definition & Objectives (Weeks 1-3)**
-    *   **Week 3 Milestone**: Project Charter Signed. **Owner**: Project Sponsor.
-*   **Phase 2: Stakeholder Alignment & Capacity (Weeks 3-5)**
-    *   **Week 5 Milestone**: Scope & Capacity Sign-off. **Owner**: Engineering Lead.
-*   **Phase 4: Team Structure & RACI (Weeks 5-7)**
-    *   **Week 7 Milestone**: RACI Matrix Published. **Owner**: Project Manager.
-*   **Phase 5: Risk Assessment & Mitigation (Weeks 7-9)**
-    *   **Week 9 Milestone**: Initial Risk Register Approved. **Owner**: Project Manager.
-*   **Phase 6: Compliance & Clearance (Weeks 8-12)**
-    *   **Week 12 Milestone**: Operational Clearance Secured. **Owner**: Compliance Officer.
-*   **Contingency Buffer**: Weeks 13-15 (Integrated throughout schedule).
-*   **Final Launch**: **Week 16**.
+## Hypothesis Generation & Prioritization
 
-## Conclusion
-This project plan provides a structured, risk-aware framework for successfully launching a software product with a remote team. Adherence to its phased approach and key governance tools is critical for mitigating the inherent challenges of distributed work and achieving the desired business outcome.
+### Summary
+Anchored to the $50K budget and partial capacity, we modeled ramp and onboarding efficiency baselines and generated five root-cause hypotheses (H1–H5) spanning fragmented artifacts, missing 30/60/90 structure, manual provisioning latency, weak feedback loops, and unassigned peer buddies. Each was scored on impact and effort to produce a prioritized execution sequence that front-loads low-effort, leadership-mandated visibility (pulse, buddy rule) and defers the highest-cost automation to a later window.
+
+The prioritized matrix yields $40K committed with $10K buffer. Execution sequences H4/H5 in Weeks 1–2, H1/H2 in Weeks 3–5, and H3 in Weeks 6–9, with weekly dashboard reporting satisfying governance needs from Day 1.
+
+### Key Findings
+- H2 (standard 30/60/90 plan) carries top strategic leverage (impact 5, effort 2, $8K) for ramp compression.
+- H3 (auto access provisioning) is highest cost ($20K) and depends on 0.5 FTE eng for 4 weeks from partial capacity.
+- H4 (weekly pulse + dashboard) and H5 (buddy rule) are low-effort, low-cost, and immediately satisfy weekly leadership update mandate.
+- Total prioritized spend is $40K against $50K cap, preserving $10K for license overages or contractor cleanup.
+- Assumption risk on baselines requires HRIS validation by Week 1 or matrix recalibration.
+
+### Recommendations
+- Immediate: Deploy H4 pulse/dashboard and H5 buddy assignment rule in Weeks 1–2 using Sheets/PowerBI and HR automation.
+- Short-Term: Ship H1 centralized doc hub (Notion, $6K) and H2 30/60/90 template plus manager training ($8K) by Week 5.
+- Long-Term: Implement H3 HRIS–IT auto-provisioning via Zapier/Workato in Weeks 6–9; defer to Phase 2 if eng capacity unavailable.
+
+### Risks & Tradeoffs
+**Primary Risk:** H3 depends on 0.5 FTE engineering for 4 weeks; shortfall stalls automation.
+**Mitigation:** Defer H3 to Phase 2 and protect Quick Wins and Experimental phases if FTE unavailable.
+**Tradeoff:** Sequencing auto-provisioning last delays environment-readiness gains (5-day latency removal) until Week 9.
+
+### Deliverables
+- Assumption-anchored baseline metric table (TTP, NPS, retention, manager hours)
+- Root cause hypothesis set H1–H5 with evidence links
+- Priority matrix (impact/effort/cost/priority score) with $40K allocation
+- Prioritized execution sequence mapped to weeks and budget
+- Risk and constraint notes on capacity, budget, and assumptions
+
+### Conclusion
+Hypotheses are sequenced to buy visibility and standardize motion first, reserving capital-intensive automation for validated capacity—discipline that protects the $50K envelope.
+
+## Phased 90-Day Implementation Roadmap
+
+### Summary
+The 90-day roadmap operationalizes the prioritized hypotheses into three phases—Quick Wins (Days 1–30), Experimental (Days 31–60), and Scale (Days 61–90)—under a $50K ceiling and assumed 1.5 FTE eng / 1 FTE product capacity. Quick Wins remove friction via funnel audit, inline fixes, and leadership metric pack ($12K). Experimental tests simplified creation and contextual help with event instrumentation ($23K). Scale rolls out winners, embeds help, and automates health dashboard ($15K).
+
+Success is tracked through five KPIs (TTFV, Step-2 abandonment, D7 retention, activation, ticket volume) with daily anomaly alerts and weekly leadership packs. Governance binds Scale phase to ≥1 winning experiment by Day 55 and freezes new tooling past Day 50.
+
+### Key Findings
+- Quick Wins target ≥15% reduction in Step-2 abandonment (baseline 48%) via UX contract and product time.
+- Experimental phase requires $4K/mo experiment tooling and 0.5 FTE eng ramp; exit is 2 validated hypotheses at p<0.05.
+- Scale phase is contingent on experiment success; full migration and GA help widget consume remaining $15K.
+- Engineering capacity shortfall is high-likelihood/high-impact; mitigated by no-code help widget and scope cut.
+- Data gaps in activation events addressed by $3K contractor proxy bootstrap until Day-45 pipeline fix.
+
+### Recommendations
+- Immediate: Execute Day-1 funnel audit; deploy inline validation and rewrite 3 high-drop-off tooltips; stand up weekly leadership pack by Day 10.
+- Short-Term: Launch A/B test on email-only vs full-profile creation (Day 31); pilot contextual help widget; instrument activation events.
+- Long-Term: Migrate 100% of cohorts to winning flow (Day 61+); embed help in GA; automate onboarding health dashboard; train CS on metrics.
+
+### Risks & Tradeoffs
+**Primary Risk:** Engineering capacity (1.5 FTE) insufficient for Scale-phase build.
+**Mitigation:** Defer non-critical instrumentation to Q2; substitute no-code widget for custom help layer at $0 scope-cut cost.
+**Tradeoff:** Deferral of instrumentation reduces attribution granularity post-90-day but protects live flow delivery.
+
+### Deliverables
+- Phased 90-day roadmap table (window, objective, initiatives, cost, exit criteria)
+- Success metrics framework with KPI definitions, baselines, targets, owners
+- Risk/constraint register with likelihood, impact, mitigation, cost
+- Execution governance model (weekly sync, budget freeze, dependency gate)
+
+### Conclusion
+The roadmap converts analysis into sequenced, gated execution with built-in deferral rights that hold the $50K envelope against throughput risk.
+
+## Consolidated Recommendations
+
+- Immediate: Close baseline data gaps (Week 1–2); deploy pulse, buddy rule, and leadership metric pack (Day 10); audit funnel and ship inline fixes (Day 30).
+- Short-Term: Centralize docs and 30/60/90 playbooks (Week 5); run experimental A/B and help-widget pilot (Day 60); validate 2 hypotheses.
+- Long-Term: Automate HRIS–IT provisioning (Week 9); scale winning flow to 100% cohorts; embed health dashboard and CS training (Day 90); carry unmet items to Q2 plan.
+
+## Final Note
+Discipline against the $50K cap and partial capacity is the controlling variable. Weekly leadership reporting via the H4 dashboard provides the feedback loop to recalibrate before Scale-phase commitments lock.

@@ -9,6 +9,8 @@ Provides:
 
 import logging
 from pathlib import Path
+import time
+import json
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
@@ -17,6 +19,9 @@ from pydantic import ValidationError
 from app.config import OUTPUT_DIR, LLM_API_KEY, BUDGET_MAX_STAGE_LATENCY
 from app.models import AgentRequest, AgentResponse, PlanEditRequest
 from app.agent.orchestrator import run_agent, execute_plan_only
+
+PROCESS_START_TIME = time.time()
+IS_FIRST_REQUEST = True
 
 # Configure logging
 logging.basicConfig(
@@ -221,7 +226,17 @@ async def stream_process_request(request: str, require_review: bool = False, for
     if not request.strip():
         raise HTTPException(status_code=400, detail="Empty request")
         
-    import time
+    global IS_FIRST_REQUEST
+    process_elapsed = time.time() - PROCESS_START_TIME
+    logger.info(json.dumps({
+        "log_type": "request_diagnostics",
+        "timestamp": time.time(),
+        "is_first_request": IS_FIRST_REQUEST,
+        "process_start_time": PROCESS_START_TIME,
+        "process_uptime_seconds": round(process_elapsed, 2)
+    }))
+    IS_FIRST_REQUEST = False
+
     from app.config import DEBUG_TIMING
     from app.metrics import _current_stage
     
@@ -271,7 +286,7 @@ async def stream_process_request(request: str, require_review: bool = False, for
                     "\n".join(stack_traces)
                 )
                 
-                yield f"data: {json.dumps({'type': 'error', 'error': f'Pipeline timeout: stage execution exceeded {int(BUDGET_MAX_STAGE_LATENCY)}s limit.'})}\n\n"
+                yield f"data: {json.dumps({'type': 'error', 'error': f'Pipeline timeout: total execution exceeded {int(BUDGET_MAX_STAGE_LATENCY)}s limit.'})}\n\n"
                 return
 
             try:
@@ -320,12 +335,22 @@ async def stream_process_request(request: str, require_review: bool = False, for
 @app.post("/agent/execute/stream")
 async def stream_execute_plan(body: PlanEditRequest):
     """Execute a user-approved plan and stream progress via SSE."""
+    global IS_FIRST_REQUEST
+    process_elapsed = time.time() - PROCESS_START_TIME
+    logger.info(json.dumps({
+        "log_type": "request_diagnostics",
+        "timestamp": time.time(),
+        "is_first_request": IS_FIRST_REQUEST,
+        "process_start_time": PROCESS_START_TIME,
+        "process_uptime_seconds": round(process_elapsed, 2)
+    }))
+    IS_FIRST_REQUEST = False
+
     if not LLM_API_KEY and not __import__("app.config", fromlist=["USE_DEMO_MODE"]).USE_DEMO_MODE:
         raise HTTPException(status_code=503, detail="LLM API key is not configured.")
 
     import asyncio
     import json
-    import time
     from app.config import DEBUG_TIMING
     from app.metrics import _current_stage
     
@@ -365,7 +390,7 @@ async def stream_execute_plan(body: PlanEditRequest):
                     "\n".join(stack_traces)
                 )
                 
-                yield f"data: {json.dumps({'type': 'error', 'error': f'Pipeline timeout: stage execution exceeded {int(BUDGET_MAX_STAGE_LATENCY)}s limit.'})}\n\n"
+                yield f"data: {json.dumps({'type': 'error', 'error': f'Pipeline timeout: total execution exceeded {int(BUDGET_MAX_STAGE_LATENCY)}s limit.'})}\n\n"
                 return
 
             try:

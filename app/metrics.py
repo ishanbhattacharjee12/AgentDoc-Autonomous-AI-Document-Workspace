@@ -24,9 +24,16 @@ class PipelineMetrics:
         if stage in self.stages:
             self.stages[stage]["start_time"] = time.time()
             _current_stage.set(stage)
+            import json
+            import logging
+            logging.getLogger("app.metrics").info(json.dumps({
+                "log_type": "stage_instrumentation",
+                "stage": stage,
+                "action": "start",
+                "timestamp": time.time()
+            }))
             from app.config import DEBUG_TIMING
             if DEBUG_TIMING:
-                import logging
                 name_map = {
                     "planning": "Planner",
                     "execution": "Executor",
@@ -43,9 +50,17 @@ class PipelineMetrics:
             self.stages[stage]["time"] += elapsed
             del self.stages[stage]["start_time"]
             _current_stage.set("idle")
+            import json
+            import logging
+            logging.getLogger("app.metrics").info(json.dumps({
+                "log_type": "stage_instrumentation",
+                "stage": stage,
+                "action": "end",
+                "timestamp": time.time(),
+                "duration_ms": round(elapsed * 1000.0, 2)
+            }))
             from app.config import DEBUG_TIMING
             if DEBUG_TIMING:
-                import logging
                 name_map = {
                     "planning": "Planner",
                     "execution": "Executor",
@@ -69,9 +84,15 @@ class PipelineMetrics:
 
     def finalize(self) -> float:
         self.total_time = time.time() - self.start_time
+        import json
+        import logging
+        logging.getLogger("app.metrics").info(json.dumps({
+            "log_type": "pipeline_finalization",
+            "total_time_ms": round(self.total_time * 1000.0, 2),
+            "timestamp": time.time()
+        }))
         from app.config import DEBUG_TIMING
         if DEBUG_TIMING:
-            import logging
             logging.getLogger("app.metrics").info("[INSTRUMENTATION] Metrics finalization: timestamp=%f", time.time())
         return self.total_time
 
