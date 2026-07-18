@@ -1,0 +1,10 @@
+{
+  "framework": "vite",
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/((?!assets/|favicon\\.svg|icons\\.svg|manifest\\.json).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
