@@ -216,7 +216,8 @@ async def health_check():
         "api_key_configured": bool(LLM_API_KEY),
         "debug": DEBUG,
         "enable_cache": ENABLE_CACHE,
-        "active_model": ACTIVE_MODEL
+        "active_model": ACTIVE_MODEL,
+        "version": "v1.0.1-instrumented"
     }
 
 
