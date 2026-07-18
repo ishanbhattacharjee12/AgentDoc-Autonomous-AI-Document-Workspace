@@ -1,21 +1,8 @@
 {
   "framework": "vite",
   "cleanUrls": true,
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "x-custom-vercelfixer",
-          "value": "active"
-        }
-      ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/:path*",
-      "destination": "/index.html"
-    }
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/((?!assets/|favicon\\.svg|icons\\.svg|manifest\\.json).*)", "dest": "/index.html" }
   ]
 }
