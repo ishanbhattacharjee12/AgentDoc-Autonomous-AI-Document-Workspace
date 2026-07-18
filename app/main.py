@@ -12,10 +12,9 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
-from app.config import OUTPUT_DIR, STATIC_DIR, LLM_API_KEY, BUDGET_MAX_STAGE_LATENCY
+from app.config import OUTPUT_DIR, LLM_API_KEY, BUDGET_MAX_STAGE_LATENCY
 from app.models import AgentRequest, AgentResponse, PlanEditRequest
 from app.agent.orchestrator import run_agent, execute_plan_only
 
@@ -55,19 +54,151 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-
-
 # --- Endpoints ---
 
 @app.get("/", response_class=HTMLResponse)
-async def serve_frontend():
-    """Serve the frontend single-page application."""
-    index_path = STATIC_DIR / "index.html"
-    if not index_path.exists():
-        raise HTTPException(status_code=404, detail="Frontend not found.")
-    return HTMLResponse(content=index_path.read_text())
+async def serve_api_landing():
+    """Serve a professional API landing page."""
+    html_content = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentDoc Backend API</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #0c0d0e;
+            color: #e2e8f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #16181a;
+            border: 1px solid #2d3134;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 8px;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background-color: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px #10b981;
+        }
+        .version {
+            color: #718096;
+            font-size: 14px;
+            margin-bottom: 24px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        p {
+            color: #a0aec0;
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+        .section-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #718096;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .links {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 28px;
+        }
+        .links a {
+            color: #63b3ed;
+            text-decoration: none;
+            background-color: #1e2225;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            border: 1px solid #2d3134;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .links a:hover {
+            background-color: #262b2f;
+            border-color: #4a5568;
+            color: #90cdf4;
+        }
+        .links a::after {
+            content: "→";
+            font-weight: bold;
+        }
+        .frontend-url {
+            background-color: #1e2225;
+            border: 1px dashed #4a5568;
+            border-radius: 8px;
+            padding: 14px 16px;
+            font-size: 14px;
+            color: #a0aec0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AgentDoc Backend API</h1>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; height: 26px;">
+            <span class="status-badge"><span class="status-dot"></span> Online</span>
+            <span class="version">v1.0.0</span>
+        </div>
+        <p>Autonomous AI Document Intelligence Platform Backend. Exposes multi-stage document generation reasoning pipeline API endpoints.</p>
+        
+        <div class="section-title">Developer Resources</div>
+        <div class="links">
+            <a href="/docs">API Documentation (Swagger UI)</a>
+            <a href="/openapi.json">OpenAPI Specification (JSON)</a>
+            <a href="/health">Health Status</a>
+        </div>
+        
+        <div class="section-title">Connected Frontend</div>
+        <div class="frontend-url">
+            <strong>Frontend URL:</strong><br>
+            <span style="color: #718096; font-style: italic;">(To be added after Vercel deployment)</span>
+        </div>
+    </div>
+</body>
+</html>"""
+    return HTMLResponse(content=html_content)
 
 
 @app.get("/health")
