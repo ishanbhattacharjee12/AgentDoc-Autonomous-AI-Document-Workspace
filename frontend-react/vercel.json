@@ -3,6 +3,12 @@
   "cleanUrls": true,
   "routes": [
     { "handle": "filesystem" },
-    { "src": "/((?!assets/|favicon\\.svg|icons\\.svg|manifest\\.json).*)", "dest": "/index.html" }
+    {
+      "src": "/.*",
+      "headers": {
+        "x-custom-vercelfixer": "active"
+      },
+      "dest": "/index.html"
+    }
   ]
 }
