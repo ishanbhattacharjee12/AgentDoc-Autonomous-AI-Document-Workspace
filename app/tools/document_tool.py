@@ -815,13 +815,44 @@ def _generate_html(filepath: Path, title: str, document_type: str, assumptions: 
 def _to_latin1(text: str) -> str:
     """Sanitize unicode string to latin-1, replacing unsupported characters with equivalents."""
     replacements = {
-        '\u2014': '-',   # em-dash
-        '\u2013': '-',   # en-dash
-        '\u201c': '"',   # left double quote
-        '\u201d': '"',   # right double quote
-        '\u2018': "'",   # left single quote
-        '\u2019': "'",   # right single quote
-        '\u2022': '\x95', # bullet point
+        # Dashes & Quotes
+        '\u2014': '-',     # em-dash —
+        '\u2013': '-',     # en-dash –
+        '\u201c': '"',     # left double quote “
+        '\u201d': '"',     # right double quote ”
+        '\u2018': "'",     # left single quote ‘
+        '\u2019': "'",     # right single quote ’
+        '\u201b': "'",     # single high-reversed-9 quote ‛
+        '\u201f': '"',     # double high-reversed-9 quote ‟
+        
+        # Inequalities
+        '\u2265': '>=',    # ≥
+        '\u2264': '<=',    # ≤
+        '\u2260': '!=',    # ≠
+        '\u2261': '==',    # ≡
+        
+        # Arrows / Directions
+        '\u2192': '->',    # →
+        '\u2190': '<-',    # ←
+        '\u2194': '<->',   # ↔
+        '\u21d2': '=>',    # ⇒
+        '\u21d0': '<=',    # ⇐
+        '\u21d4': '<=>',   # ⇔
+        
+        # Math & Approximation
+        '\u2212': '-',     # unicode minus −
+        '\u223c': '~',     # ∼ (tilde operator)
+        '\u2248': '~',     # ≈ (almost equal to)
+        '\u223d': '~',     # ∽ (reverse tilde)
+        '\uff5e': '~',     # ～ (fullwidth tilde)
+        '\u00d7': 'x',     # × (multiplication sign)
+        '\u00f7': '/',     # ÷ (division sign)
+        
+        # Typography & Whitespace
+        '\u2022': '\x95',  # bullet point • -> standard PDF bullet glyph
+        '\u2026': '...',   # ellipsis …
+        '\xa0': ' ',       # non-breaking space -> space
+        '\u200b': '',      # zero-width space -> empty
     }
     for orig, repl in replacements.items():
         text = text.replace(orig, repl)
