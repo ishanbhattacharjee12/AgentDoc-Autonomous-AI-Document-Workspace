@@ -1,8 +1,9 @@
 {
+  "framework": "vite",
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/:path*",
+      "source": "/((?!assets/|favicon\\.svg|icons\\.svg|manifest\\.json).*)",
       "destination": "/index.html"
     }
   ]
