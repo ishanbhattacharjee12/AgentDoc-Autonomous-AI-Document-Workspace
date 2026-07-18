@@ -11,6 +11,14 @@ AgentDoc is an **autonomous document intelligence platform** that transforms nat
 
 ---
 
+## 🌍 Live Demo
+
+*   **Frontend UI (Vercel)**: [https://agentdoc-ai-document-workspace.vercel.app](https://agentdoc-ai-document-workspace.vercel.app)
+*   **Backend API (Render)**: [https://agentdoc-autonomous-ai-document-workspace.onrender.com](https://agentdoc-autonomous-ai-document-workspace.onrender.com)
+*   **Swagger API Docs**: [https://agentdoc-autonomous-ai-document-workspace.onrender.com/docs](https://agentdoc-autonomous-ai-document-workspace.onrender.com/docs)
+
+---
+
 ## 🚀 Key Features
 
 *   **Autonomous Planning & Reasonings**: Decomposes complex user requests into structured, multi-phase execution tasks using an LLM-powered planner agent.
@@ -57,7 +65,7 @@ Manage previous document drafts, favorite items, and review monthly quota metric
 
 ## 🏗️ System Architecture
 
-```
+```text
                                 [ Client UI React Workspace ]
                                               │
                  ┌────────────────────────────┼────────────────────────────┐
@@ -104,15 +112,29 @@ Manage previous document drafts, favorite items, and review monthly quota metric
 Create a `.env` file in the project root containing:
 
 ```env
-# Server Port (Default: 8000)
+# -----------------------------------------------------------------------------
+# AgentDoc Environment Variables Template
+# -----------------------------------------------------------------------------
+
+# Backend Application Configuration
 PORT=8000
+DEBUG=false
+ENABLE_CACHE=true
 
-# LLM Providers Configuration
-OPENAI_API_KEY=your_openai_key_here
-GEMINI_API_KEY=your_gemini_key_here
+# CORS Allow List (Comma-separated list of allowed origins)
+ALLOWED_ORIGINS=https://agentdoc-ai-document-workspace.vercel.app,http://localhost:5173
 
-# Optional: Run in Demo Mode (Generates mock documents without API charges)
+# LLM Provider Configuration (openai, gemini, anthropic, zen)
+LLM_PROVIDER=openai
+LLM_API_KEY=your_api_key_here
+LLM_MODEL=gpt-4o
+LLM_BASE_URL=https://api.openai.com/v1
+
+# Optional: Run in local offline Demo mode without hitting active LLM API limits
 USE_DEMO_MODE=false
+
+# Budget & Timeout Controls (Default: 180.0)
+# BUDGET_MAX_STAGE_LATENCY=180.0
 ```
 
 ---
@@ -122,7 +144,7 @@ USE_DEMO_MODE=false
 ### Prerequisites
 *   Node.js 20+
 *   Python 3.11+
-*   NPM or Yarn
+*   NPM
 
 ### 1. Clone & Setup Backend
 ```bash
@@ -169,12 +191,10 @@ Open `http://localhost:5173` in your browser to run the application.
 │   └── tools                # PDF & DOCX rendering tools
 ├── docs
 │   ├── DEMO.md              # 2-minute, 5-minute, and 10-minute audit scripts
-│   ├── examples             # Consulting document exports (PDF / DOCX examples)
-│   └── roadmaps             # Historical roadmaps and architectural specs
+│   └── examples             # Consulting document exports (PDF / DOCX examples)
 ├── frontend-react
 │   ├── src                  # React views, hooks, components, and layout shells
 │   └── package.json         # React client dependencies
-├── scratch                  # Local regressions, tests, and screenshot scripts
 └── tests                    # Backend unit test suites
 ```
 

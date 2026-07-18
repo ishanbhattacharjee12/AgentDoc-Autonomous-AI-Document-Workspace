@@ -399,7 +399,7 @@ export const GeneratePage: React.FC = () => {
         cleanupStreams()
         const enrichedData = {
           ...data,
-          time_taken: data.total_execution_time || (data as any).total_execution_time || data.time_taken
+          time_taken: data.total_execution_time || data.time_taken
         }
         setResultData(enrichedData)
         setStatus('completed')

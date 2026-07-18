@@ -13,25 +13,27 @@ interface PreviewDrawerProps {
 }
 
 export const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entry, onClose, onUpdate }) => {
-  if (!entry) return null
-
-  const formatLabel = (entry.format || 'pdf').toUpperCase()
+  const formatLabel = (entry?.format || 'pdf').toUpperCase()
   
   const derivedTitle = React.useMemo(() => {
+    if (!entry) return ''
     return deriveDocumentTitle(entry.title, entry.prompt, undefined, entry.mode)
-  }, [entry.title, entry.prompt, entry.mode])
+  }, [entry?.title, entry?.prompt, entry?.mode])
 
   const derivedSummary = React.useMemo(() => {
+    if (!entry) return ''
     return deriveDocumentSummary(entry.summary, undefined, undefined)
-  }, [entry.summary])
+  }, [entry?.summary])
 
   const [isEditing, setIsEditing] = useState(false)
-  const [tempTitle, setTempTitle] = useState(entry.title || derivedTitle)
+  const [tempTitle, setTempTitle] = useState(entry?.title || derivedTitle)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    setTempTitle(entry.title || derivedTitle)
-  }, [entry.title, derivedTitle])
+    if (entry) {
+      setTempTitle(entry.title || derivedTitle)
+    }
+  }, [entry?.title, derivedTitle])
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -39,6 +41,8 @@ export const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entry, onClose, on
       inputRef.current.select()
     }
   }, [isEditing])
+
+  if (!entry) return null
 
   const handleSave = () => {
     setIsEditing(false)
