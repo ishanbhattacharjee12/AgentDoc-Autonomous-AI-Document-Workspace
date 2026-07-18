@@ -854,47 +854,6 @@ def _demo_revision_response(user_prompt: str) -> str:
 
 def _demo_standard_mode_response(user_prompt: str) -> str:
     """Generate a standard mode response with a plan and a document."""
-    prompt_lower = user_prompt.lower()
-    
-    # 1. Project plan for chatbot
-    if "project_plan" in prompt_lower or "chatbot" in prompt_lower:
-        plan = [
-            {"title": "Project Definition & Objectives", "summary": "Objectives defined including first response time < 30s and deflection of 60-70%."},
-            {"title": "Scope & Boundaries Definition", "summary": "Scope finalized to e-commerce web chat, excluding voice assistant and social channels."},
-            {"title": "Execution Timeline & Milestones", "summary": "Timeline structured into 5 phases over 26 weeks, with pilot launching at Week 13."},
-            {"title": "Team Structure & RACI Matrix", "summary": "Core team of 7 roles established with clear RACI responsibilities mapped."},
-            {"title": "Risk Assessment & Mitigation", "summary": "High risks like poor chatbot accuracy and platform integration issues addressed with mitigation strategies."}
-        ]
-        doc = _demo_synthesis_response(user_prompt)
-        return json.dumps({
-            "plan": plan,
-            "document": doc
-        })
-        
-    # 2. Improvement plan for onboarding
-    if "improvement_plan" in prompt_lower or "onboarding" in prompt_lower:
-        plan = [
-            {"title": "Problem Framing & Baseline Analysis", "summary": "Defined user drop-off trends and mapped key funnel steps to investigate first."},
-            {"title": "Hypothesis Generation & Prioritization", "summary": "Ranked 7 key hypotheses by impact vs effort, with page friction and value messaging prioritized."},
-            {"title": "Phased 90-Day Implementation Roadmap", "summary": "Structured work into Discovery (d1-21), Quick Wins (d22-55), and Scale (d56-90) phases."},
-            {"title": "Success Metrics & Measurement Framework", "summary": "Identified completion rate and day 7 retention targets along with analytics tracking setup."},
-            {"title": "Risks, Constraints & Mitigation", "summary": "Mitigated capacity and data risks with part-time allocations and cohort analytics."}
-        ]
-        doc = _demo_synthesis_response(user_prompt)
-        return json.dumps({
-            "plan": plan,
-            "document": doc
-        })
-        
-    # Fallback
-    plan = [
-        {"title": "Phase 1: Objectives & Context Analysis", "summary": "Analyzed core requirements and established background context."},
-        {"title": "Phase 2: Core Analysis & Insights", "summary": "Performed deep domain analysis and documented findings."},
-        {"title": "Phase 3: Recommendations & Next Steps", "summary": "Provided actionable next steps and clear success criteria."}
-    ]
-    doc = _demo_synthesis_response(user_prompt)
-    return json.dumps({
-        "plan": plan,
-        "document": doc
-    })
+    return _demo_synthesis_response(user_prompt)
+
 
