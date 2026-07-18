@@ -1,14 +1,20 @@
 {
   "framework": "vite",
-  "cleanUrls": true,
-  "routes": [
-    { "handle": "filesystem" },
+  "headers": [
     {
-      "src": "/.*",
-      "headers": {
-        "x-custom-vercelfixer": "active"
-      },
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "x-custom-vercelfixer",
+          "value": "active"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/:path*",
+      "destination": "/index.html"
     }
   ]
 }
