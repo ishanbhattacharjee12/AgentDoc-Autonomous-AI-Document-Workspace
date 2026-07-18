@@ -118,6 +118,12 @@ def execute_plan(plan: PlannerOutput, request: str) -> list[dict]:
             })
             results.extend(out["results"])
 
+    failed_tasks = [r for r in results if r.get("status") == "failed"]
+    if failed_tasks:
+        err_msg = f"Task execution failed in phase: {failed_tasks[0].get('summary')}"
+        logger.error(err_msg)
+        raise RuntimeError(err_msg)
+
     completed = sum(1 for r in results if r.get("status") == "completed")
     logger.info("Execution complete: %d/%d tasks succeeded", completed, len(results))
     return results

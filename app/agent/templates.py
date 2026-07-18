@@ -5,6 +5,9 @@ from typing import Dict, List, Any
 DOCUMENT_TEMPLATES: Dict[str, Dict[str, Any]] = {
     "project_plan": {
         "title": "Project Plan",
+        "implementation_effort": "High",
+        "complexity": "High",
+        "reading_time": "15 minutes",
         "assumptions": [
             "Project sponsor has authorized the budget and resource commitments.",
             "Key stakeholders are identified and aligned on the primary objectives.",
@@ -21,6 +24,9 @@ DOCUMENT_TEMPLATES: Dict[str, Dict[str, Any]] = {
     },
     "improvement_plan": {
         "title": "Improvement Plan",
+        "implementation_effort": "High",
+        "complexity": "High",
+        "reading_time": "15 minutes",
         "assumptions": [
             "Current baseline metrics are available or can be estimated.",
             "Engineering and product teams have partial capacity to implement recommendations.",
@@ -37,6 +43,9 @@ DOCUMENT_TEMPLATES: Dict[str, Dict[str, Any]] = {
     },
     "proposal": {
         "title": "Proposal",
+        "implementation_effort": "Medium",
+        "complexity": "Moderate",
+        "reading_time": "10 minutes",
         "assumptions": [
             "Target audience has a basic understanding of the domain.",
             "The proposed solution is aligned with industry best practices.",
@@ -51,6 +60,9 @@ DOCUMENT_TEMPLATES: Dict[str, Dict[str, Any]] = {
     },
     "sop": {
         "title": "Standard Operating Procedure",
+        "implementation_effort": "Medium",
+        "complexity": "Moderate",
+        "reading_time": "10 minutes",
         "assumptions": [
             "Operators have completed basic training on relevant tools.",
             "SOP is compliant with existing security and organizational policies.",
@@ -65,6 +77,9 @@ DOCUMENT_TEMPLATES: Dict[str, Dict[str, Any]] = {
     },
     "technical_design": {
         "title": "Technical Design",
+        "implementation_effort": "High",
+        "complexity": "High",
+        "reading_time": "15 minutes",
         "assumptions": [
             "System will run on standard cloud infrastructure.",
             "Existing codebase can be extended with minimal rewrite.",
@@ -79,6 +94,9 @@ DOCUMENT_TEMPLATES: Dict[str, Dict[str, Any]] = {
     },
     "informational_summary": {
         "title": "Informational Summary",
+        "implementation_effort": "Low",
+        "complexity": "Basic",
+        "reading_time": "5 minutes",
         "assumptions": [
             "Audience is seeking a concise, structured introduction to the topic.",
             "Historical facts and industry context are sourced from verified definitions."
@@ -91,6 +109,9 @@ DOCUMENT_TEMPLATES: Dict[str, Dict[str, Any]] = {
     },
     "business_document": {
         "title": "Business Document",
+        "implementation_effort": "Medium",
+        "complexity": "Moderate",
+        "reading_time": "10 minutes",
         "assumptions": [
             "Standard business guidelines apply.",
             "The document aims to provide actionable insight for decision-making."

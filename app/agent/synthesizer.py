@@ -51,8 +51,8 @@ def synthesize(
         return draft
 
     except Exception as e:
-        logger.error("Synthesis failed: %s", e)
-        return _minimal_draft(goal, assumptions)
+        logger.error("Synthesis failed: %s", e, exc_info=True)
+        raise RuntimeError(f"Synthesis failed: {str(e)}") from e
 
 
 def _minimal_draft(goal: str, assumptions: list[str]) -> str:

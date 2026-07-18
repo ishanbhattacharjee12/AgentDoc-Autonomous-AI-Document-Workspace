@@ -113,6 +113,7 @@ class AgentResponse(BaseModel):
     stage_metrics: Optional[dict] = None
     provider: str = ""
     model_name: str = ""
+    active_model: str = ""
     cache_status: str = ""
     routing_outcome: str = ""
     fallback_reason: str = ""
