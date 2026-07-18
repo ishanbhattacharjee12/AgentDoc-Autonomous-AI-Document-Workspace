@@ -1,137 +1,147 @@
 # Onboarding Improvement Plan
 
-| Priority | Risk | Investment | Timeline | Expected ROI | Confidence |
-|---|---|---|---|---|---|
-| Compress TTFV and lift activation via instrumented visibility, standardized playbooks, and targeted automation | Engineering throughput shortfall; unverified baseline metrics | $50K cap (uses $40K, $10K buffer) | 90 days | $1.8M ARR pipeline recovery; CAC payback 19→12 mo | Medium-High |
+| Priority | Description | Investment | Timeline | Expected ROI | Confidence |
+|----------|-------------|------------|----------|--------------|------------|
+| P1 | Activation fix (contextual walkthrough + lifecycle nudges) | $27K | Days 1–60 | ~$140K annualized ARR at 4-mo payback | Medium-High |
+| P2 | Role-based branching MVP (2 roles) | $15K | Days 5–75 | +4% activation lift, deferred from P1 | Medium |
+| P3 | Deferred data-import barrier removal | $6K | Post-Phase 2 if capacity remains | Incremental self-serve TTP reduction | Low-Medium |
 
 ## Executive Summary
 
-**Problem:** Onboarding operates as a fragmented system across self-serve, sales-assisted, and engineering-led provisioning. Median Time-to-First-Value (TTFV) is 14.2 days against a 3-day target, 7-day activation sits at 38%, and 27% of new logos churn within 30 days. The failure drives $1.8M in delayed ARR, extends self-serve CAC payback to 19 months, and consumes 22% of AE capacity on manual hand-holding.
+**Problem**: New-user onboarding operates without a standardized activation pathway. 62% of accounts miss first-value action within 48 hours; median time-to-productivity is 14.2 days; self-serve trial-to-paid conversion sits at 19.4%. Friction suppresses ~$1.8M deferred ARR annually and inflates CAC payback to 14.1 months. (Full baseline detail in Problem Framing.)
 
-**Approach:** Execute a 90-day, three-phase plan under a $50K budget and partial team capacity. Sequence low-cost instrumentation and enablement quick wins first, validate hypotheses via controlled experiments, then scale proven changes. Prioritize unified metrics, standardized 30/60/90 playbooks, automated access provisioning, and a centralized documentation hub.
+**Approach**: Deploy a 90-day, three-phase plan under a $50K ceiling with partial engineering (0.6 FTE) and product (0.4 FTE) capacity. Phase 1 stabilizes instrumentation and ships quick wins; Phase 2 A/B validates prioritized hypotheses (contextual walkthrough, lifecycle email); Phase 3 scales proven variants to 100% with automated reporting.
 
-**Business Impact:** Recovering delayed pipeline and compressing TTFV by 79% reduces revenue risk and restores sales productivity. Targeted automation and in-product guidance cut onboarding ticket share from 41% to 15%, freeing Tier-1 capacity and reducing quarterly support burden by an estimated $60K.
+**Business Impact**: Closing the activation gap lifts trial-to-paid by 7.6 pts (self-serve) and cuts median TTP to 8 days. Projected 20% activation lift yields ~$140K annualized recurring value and reduces onboarding ticket share from 28% to 12%.
 
-**Recommendation:** Launch Day-1 funnel audit and weekly leadership metric pack; deploy buddy assignment and pulse survey within week 2; centralize docs and ship 30/60/90 templates by week 5; automate HRIS–IT provisioning by week 9. Hold scope discipline against the $50K ceiling with deferral rights on non-critical build.
+**Recommendation**: Execute P1 solutions immediately (in-product contextual walkthrough at config step, 5-touch lifecycle email). Sequence role-based branching as P2. Automate weekly leadership KPI pack from Day 15. Hold $8K contingency against capacity slip.
 
-**Expected Outcome:** Median TTFV reduced to ≤3 days, 7-day activation lifted to 65%, Day-30 retention to 88%, and onboarding ticket share cut to 15%. Self-serve CAC payback restored to 12 months.
+**Expected Outcome**: 48h activation at 58% (self-serve) / 78% (managed); 7-day retention at 52%; activation rate at 74% by Day 90.
 
-**Estimated Timeline:** 90 days (Quick Wins Days 1–30; Experimental Days 31–60; Scale Days 61–90).
+**Estimated Timeline**: Phase 1 (Days 1–30), Phase 2 (Days 31–60), Phase 3 (Days 61–90).
 
 ## Key Takeaways
-
-- Onboarding breakage is systemic: unmeasured handoffs, no product-guided value path, and unscaled human touch drive 27% early churn.
-- $50K and partial capacity mandate phased delivery—instrument and enable before building.
-- Five hypotheses (H1–H5) prioritized by impact/effort yield a $40K execution plan with $10K buffer.
-- Weekly leadership reporting is satisfied by Day-10 via lightweight pulse and dashboard, not heavy custom engineering.
-- Primary risk is engineering throughput; mitigate via no-code help layer and phased deferral in Scale phase.
+- Onboarding defects trace to three root causes: no shared activation definition, email-series mindset vs. product-state machine, reactive CSM allocation.
+- P1 interventions (walkthrough + email, $27K) capture majority of projected lift within budget and capacity.
+- Weekly automated dashboard + 1-page memo satisfies leadership governance; $50K cap enforced via per-test $12K ceiling and 80% burn flag.
+- Four unknown variables (activation ceiling, handoff failure, localization, build burn) are mitigated by holdout, Week-1 instrumentation, 10% ticket sample, and Phase 1 $22K cap.
+- Total committed spend $47K preserves $3K vs cap; net positive at month 4 post-launch.
 
 ## Problem Framing & Baseline Analysis
 
 ### Summary
-The current onboarding motion fractures across three paths—self-serve signup, manual sales-assisted provisioning, and engineering-led workspace configuration—with no unified SLA or instrumented handoff. Internal funnel telemetry from the trailing Q3 90-day cohort shows a median TTFV of 14.2 days versus a 3-day target, a 38% 7-day activation rate, and 27% Day-0–30 churn. Support load is dominated by onboarding blockers, and sales productivity leaks to manual hand-holding.
+Current onboarding lacks a standardized activation pathway, producing measurable 7-day drop-off and inflated CAC payback. Internal funnel telemetry and support tagging show 62% of new accounts miss defined first-value action within 48 hours, and 41% of enterprise trials receive conflicting guidance due to fragmented sales-to-CSM-to-product handoffs. Self-serve users disproportionately fail: 73% never access in-app tutorial; median time-to-productivity is 18.7 days versus 11.3 for managed.
 
-Root causes cluster into process (ad hoc handoffs), product (no empty-state guidance or health scoring), enablement (tribal CSM knowledge), and data (blind attribution). Under a $50K cap and partial capacity, the plan must buy visibility and standardize motion before custom builds. Open questions on tier variance, automation ceiling, and CSM capacity are assigned to owners with Week-1 to Week-3 close timelines.
+The defect-to-impact chain quantifies ~$1.8M deferred ARR and $142K avoidable support OpEx annually. Three structural root causes—absence of cross-GTM activation definition, instrumentation as email not state machine, reactive CSM capacity—anchor the plan. Four explicitly unknown variables are flagged and mapped to mitigations. Governance requires weekly KPI delta on five baselines, 0.6/0.4 FTE allocation, and $22K Phase 1 spend cap.
+
+Baseline metrics (stated once; referenced by later sections):
+- 48h activation: 38% self-serve / 61% managed
+- Median TTP: 14.2 days all-segment (18.7 self-serve / 11.3 managed)
+- Trial-to-paid: 19.4% self-serve vs 34% managed (14.6 pt gap, ~$1.8M deferred ARR)
+- Onboarding ticket share: 28%
+- 0–90 day logo churn: 11.2% self-serve (220 logos/yr)
+
+Primary risk: Baseline metrics are assumed, not verified, risking invalid impact estimates. Mitigation: A/B holdout in Phase 1; recalibrate P1 impact by Week 2 if baselines invalid. Tradeoff: $22K Phase 1 cap limits build scope; defers role-based branching to Phase 2.
 
 ### Key Findings
-- Median TTFV of 14.2 days drives $1.8M ARR pipeline delay across 75 logos averaging $24K deal size.
-- 41% of Week-1 inbound tickets are onboarding-blockers (auth, provisioning, data import), equaling $94K quarterly Tier-1 cost.
-- No end-to-end onboarding event instrumentation creates attribution blind spots and prevents SLA enforcement.
-- CSMs operate on tribal knowledge with no certified milestones; 22% of AE time is spent on onboarding hand-holding.
-- Baseline gaps: 7-day activation -27pp, Day-30 retention -15pp, onboarding ticket share -26pp vs targets.
+- 62% of new accounts do not complete first-value action within 48h; self-serve 48h activation baseline is 38% vs. managed 61%.
+- Fragmented handoff drives duplicate onboarding emails in 41% of enterprise trials.
+- 73% of SMB self-serve signups never access in-app tutorial; exit-intent not captured.
+- Trial-to-paid gap of 14.6 pts (19.4% vs 34%) equates to ~$1.8M deferred ARR on 4,200 trials/yr.
+- 0–90 day logo churn concentrated in self-serve at 11.2% (220 lost logos/yr).
+- Median TTP 14.2 days all-segment; CAC payback 14.1 months (+2.3 vs target).
 
 ### Recommendations
-- Immediate: Commission Data/RevOps to close TTFV variance by tier (Week 2); Eng Lead to size provisioning automation ceiling under $50K (Week 1).
-- Short-Term: Formalize unified onboarding SLA across sales, CS, and eng; stand up end-to-end event instrumentation by Day 10.
-- Long-Term: Institutionalize health scoring and progressive provisioning in product roadmap beyond the 90-day window.
+**Immediate**
+- Ratify a single activation definition across GTM and Product by Day 5.
+- Stand up automated weekly KPI dashboard on five baseline metrics (48h activation, TTP, trial→paid, ticket share, churn).
 
-### Risks & Tradeoffs
-**Primary Risk:** Unverified baseline metrics distort target-setting and ROI projection.
-**Mitigation:** Validate via HRIS and product analytics pull by Week 1; recalibrate priority matrix if variance exceeds 15%.
-**Tradeoff:** $50K cap forces deferral of custom eng builds in favor of playbook and instrumentation quick wins, slowing platform automation.
+**Short-Term**
+- Instrument handoff events Week 1 to size enterprise failure rate.
+- Sample 10% non-EN tickets to scope localization need.
+
+**Long-Term**
+- Migrate onboarding from email-series to product-state machine with risk-scored CSM triggers.
+- Reallocate CSM capacity from ticket-driven to proactive risk-score model.
 
 ### Deliverables
-- Current state diagnostic with quantified funnel deficiencies
-- Business impact table (revenue, CAC payback, sales productivity, support cost)
-- Root cause cluster map (process, product, enablement, data)
-- Open questions register with owners and close timelines
-- Baseline metrics summary table with gap analysis
-
-### Conclusion
-Onboarding fails as a system, not a feature. The baseline confirms that instrumented visibility and standardized motion are prerequisites to any funded automation under constraint.
+- Current state diagnostic with funnel telemetry and support tag analysis
+- Business impact quantification table (ARR, support, churn, CAC)
+- Root cause map and unknown factor register with mitigations
+- Baseline metrics snapshot (5 KPIs, pre-intervention)
+- Governance constraints memo (weekly reporting, FTE, budget caps)
 
 ## Hypothesis Generation & Prioritization
 
 ### Summary
-Anchored to the $50K budget and partial capacity, we modeled ramp and onboarding efficiency baselines and generated five root-cause hypotheses (H1–H5) spanning fragmented artifacts, missing 30/60/90 structure, manual provisioning latency, weak feedback loops, and unassigned peer buddies. Each was scored on impact and effort to produce a prioritized execution sequence that front-loads low-effort, leadership-mandated visibility (pulse, buddy rule) and defers the highest-cost automation to a later window.
+Hypotheses derive from partial-capacity environment with $50K ceiling and weekly reporting mandate. Four baseline assumptions (62% completion, 4.3d TTFV, 38% config-step drop, no in-product guidance — see Problem Framing baselines) anchor ranking. Root-cause hypotheses H1–H4 map drop-off to missing contextual guidance, absent lifecycle nudges, one-size-fits-all flow, and premature data-import barrier.
 
-The prioritized matrix yields $40K committed with $10K buffer. Execution sequences H4/H5 in Weeks 1–2, H1/H2 in Weeks 3–5, and H3 in Weeks 6–9, with weekly dashboard reporting satisfying governance needs from Day 1.
+Prioritization matrix scores solutions by impact vs effort. P1 items (contextual walkthrough $18K, lifecycle email $9K) capture +21% completion / -1.9d TTFV within 5.5 FTE-wk and $27K. P2 role-branching ($15K) and P3 deferred import ($6K) follow. Sequencing leaves $23K and partial capacity for P2 start; total Phase 1–2 commit $42K preserves $8K contingency. Capacity risk (engineering partial allocation extends P2 by 1–2 weeks) mitigated by scoping MVP to 2 roles and serial sequencing; tradeoff is delayed P3 and limited enterprise handoff rebuild.
 
 ### Key Findings
-- H2 (standard 30/60/90 plan) carries top strategic leverage (impact 5, effort 2, $8K) for ramp compression.
-- H3 (auto access provisioning) is highest cost ($20K) and depends on 0.5 FTE eng for 4 weeks from partial capacity.
-- H4 (weekly pulse + dashboard) and H5 (buddy rule) are low-effort, low-cost, and immediately satisfy weekly leadership update mandate.
-- Total prioritized spend is $40K against $50K cap, preserving $10K for license overages or contractor cleanup.
-- Assumption risk on baselines requires HRIS validation by Week 1 or matrix recalibration.
+- H2 (no lifecycle nudges) holds Medium-High confidence; H1 (config cognitive overload) Medium.
+- P1 walkthrough + email: +12% / +9% completion, -1.1d / -0.8d TTFV, $27K combined.
+- P2 role-branching MVP (2 roles) requires 4.0 FTE-wk—capacity-heavy under partial allocation.
+- If baselines invalid (see Problem Framing risk), P1 impact needs Week 2 recalibration.
+- Total committed Ph1–2 spend $42K (84% of cap); $8K contingency retained.
 
 ### Recommendations
-- Immediate: Deploy H4 pulse/dashboard and H5 buddy assignment rule in Weeks 1–2 using Sheets/PowerBI and HR automation.
-- Short-Term: Ship H1 centralized doc hub (Notion, $6K) and H2 30/60/90 template plus manager training ($8K) by Week 5.
-- Long-Term: Implement H3 HRIS–IT auto-provisioning via Zapier/Workato in Weeks 6–9; defer to Phase 2 if eng capacity unavailable.
+**Immediate**
+- Launch P1 contextual walkthrough at account-config step (Week 1–4).
+- Deploy 5-touch lifecycle email sequence in parallel.
 
-### Risks & Tradeoffs
-**Primary Risk:** H3 depends on 0.5 FTE engineering for 4 weeks; shortfall stalls automation.
-**Mitigation:** Defer H3 to Phase 2 and protect Quick Wins and Experimental phases if FTE unavailable.
-**Tradeoff:** Sequencing auto-provisioning last delays environment-readiness gains (5-day latency removal) until Week 9.
+**Short-Term**
+- Begin P2 role-based branching MVP (2 roles) Week 5; cap at $15K.
+- Validate baselines by Week 2; recalibrate impact models.
 
-### Deliverables
-- Assumption-anchored baseline metric table (TTP, NPS, retention, manager hours)
-- Root cause hypothesis set H1–H5 with evidence links
-- Priority matrix (impact/effort/cost/priority score) with $40K allocation
-- Prioritized execution sequence mapped to weeks and budget
-- Risk and constraint notes on capacity, budget, and assumptions
-
-### Conclusion
-Hypotheses are sequenced to buy visibility and standardize motion first, reserving capital-intensive automation for validated capacity—discipline that protects the $50K envelope.
+**Long-Term**
+- Fast-follow P3 deferred data-import if capacity remains post-Phase 2.
+- Institutionalize weekly metric pack on completion, TTFV, step-drop.
 
 ## Phased 90-Day Implementation Roadmap
 
 ### Summary
-The 90-day roadmap operationalizes the prioritized hypotheses into three phases—Quick Wins (Days 1–30), Experimental (Days 31–60), and Scale (Days 61–90)—under a $50K ceiling and assumed 1.5 FTE eng / 1 FTE product capacity. Quick Wins remove friction via funnel audit, inline fixes, and leadership metric pack ($12K). Experimental tests simplified creation and contextual help with event instrumentation ($23K). Scale rolls out winners, embeds help, and automates health dashboard ($15K).
+Execution spans three phases under $50K ceiling at 30% allocated team capacity. Phase 1 (Days 1–30) stabilizes funnel via instrumentation audit, UX micro-copy, SSO simplification, welcome checklist MVP. Phase 2 (Days 31–60) A/B tests progressive profiling, in-app guidance, SMB cohort onboarding, chatbot triage against $12K/test cap. Phase 3 (Days 61–90) rolls winning variants to 100%, automates leadership report, trains CS, embeds diagnostics.
 
-Success is tracked through five KPIs (TTFV, Step-2 abandonment, D7 retention, activation, ticket volume) with daily anomaly alerts and weekly leadership packs. Governance binds Scale phase to ≥1 winning experiment by Day 55 and freezes new tooling past Day 50.
+Measurement layer extracts from Day 15: TTA (72h→48h), step-1 drop (38%→28%), 7-day retention (41%→52%), activation (54%→74%). Risk matrix enforces serial testing on capacity slip (mitigation: serial sequencing, defer non-winning variants; tradeoff: per-test $12K cap may underfund complex variants accepting lower stat power), data-contractor fallback at $6K, Day-45 kill criteria, weekly scope audit, finance flag at 80% burn. Estimated cost $47K; benefit ~$140K ARR; net positive month 4.
 
 ### Key Findings
-- Quick Wins target ≥15% reduction in Step-2 abandonment (baseline 48%) via UX contract and product time.
-- Experimental phase requires $4K/mo experiment tooling and 0.5 FTE eng ramp; exit is 2 validated hypotheses at p<0.05.
-- Scale phase is contingent on experiment success; full migration and GA help widget consume remaining $15K.
-- Engineering capacity shortfall is high-likelihood/high-impact; mitigated by no-code help widget and scope cut.
-- Data gaps in activation events addressed by $3K contractor proxy bootstrap until Day-45 pipeline fix.
+- Phase 1 exit: instrumentation ≥95%, SSO drop ↓15%.
+- Phase 2 criterion: 2 of 3 hypotheses show ≥10% activation lift at <$12K/test.
+- Phase 3: winning variants at 100%, weekly report automated, activation ↑20% vs baseline.
+- Total cost $47K (P1 $9K, P2 $28K, P3 $10K); $3K under cap.
+- Breach of $50K or >40% capacity triggers pause-and-replan.
 
 ### Recommendations
-- Immediate: Execute Day-1 funnel audit; deploy inline validation and rewrite 3 high-drop-off tooltips; stand up weekly leadership pack by Day 10.
-- Short-Term: Launch A/B test on email-only vs full-profile creation (Day 31); pilot contextual help widget; instrument activation events.
-- Long-Term: Migrate 100% of cohorts to winning flow (Day 61+); embed help in GA; automate onboarding health dashboard; train CS on metrics.
+**Immediate**
+- Execute Phase 1 instrumentation audit and ship 3 micro-copy fixes by Day 10.
+- Launch welcome checklist MVP and simplified SSO Day 15.
 
-### Risks & Tradeoffs
-**Primary Risk:** Engineering capacity (1.5 FTE) insufficient for Scale-phase build.
-**Mitigation:** Defer non-critical instrumentation to Q2; substitute no-code widget for custom help layer at $0 scope-cut cost.
-**Tradeoff:** Deferral of instrumentation reduces attribution granularity post-90-day but protects live flow delivery.
+**Short-Term**
+- Run Phase 2 A/B serially; apply Day-45 kill criteria to subthreshold tests.
+- Contract temp data resource ($6K) if instrumentation gaps block KPI read.
 
-### Deliverables
-- Phased 90-day roadmap table (window, objective, initiatives, cost, exit criteria)
-- Success metrics framework with KPI definitions, baselines, targets, owners
-- Risk/constraint register with likelihood, impact, mitigation, cost
-- Execution governance model (weekly sync, budget freeze, dependency gate)
+**Long-Term**
+- Scale chatbot to all tiers and embed self-serve diagnostics in Phase 3.
+- Automate Looker leadership view; train CS on locked flows.
 
-### Conclusion
-The roadmap converts analysis into sequenced, gated execution with built-in deferral rights that hold the $50K envelope against throughput risk.
+## Success Metrics & Measurement Framework
 
-## Consolidated Recommendations
+### KPIs & Baselines (consolidated)
+- 48h activation: 38% self-serve / 61% managed (target: 58% / 78% by Day 90)
+- Median TTP: 14.2 days all-segment (target: 8 days)
+- Trial-to-paid: 19.4% self-serve (target: +7.6 pts)
+- Onboarding ticket share: 28% (target: 12%)
+- 0–90 day logo churn: 11.2% self-serve (target: reduction via activation lift)
+- Secondary: step-1 drop 38%→28%; 7-day retention 41%→52%; activation 54%→74%
 
-- Immediate: Close baseline data gaps (Week 1–2); deploy pulse, buddy rule, and leadership metric pack (Day 10); audit funnel and ship inline fixes (Day 30).
-- Short-Term: Centralize docs and 30/60/90 playbooks (Week 5); run experimental A/B and help-widget pilot (Day 60); validate 2 hypotheses.
-- Long-Term: Automate HRIS–IT provisioning (Week 9); scale winning flow to 100% cohorts; embed health dashboard and CS training (Day 90); carry unmet items to Q2 plan.
+### Measurement Cadence
+- Daily: instrumentation health and funnel event capture (Phase 1+)
+- Weekly: automated KPI dashboard + 1-page leadership memo (from Day 15)
+- Phase gate: Phase 1 exit Day 30, Phase 2 Day-45 kill criteria, Phase 3 Day 90 rollout audit
 
-## Final Note
-Discipline against the $50K cap and partial capacity is the controlling variable. Weekly leadership reporting via the H4 dashboard provides the feedback loop to recalibrate before Scale-phase commitments lock.
+### Governance
+- Ownership: Product (0.4 FTE) owns KPI pack; Engineering (0.6 FTE) owns tracking plan
+- Budget controls: $50K cap, $22K Phase 1 cap, $12K per-test cap, 80% burn finance flag
+- Reporting: Looker leadership view automated by Phase 3; weekly delta on five baselines
+- Breach triggers: >$50K or >40% capacity slip forces pause-and-replan

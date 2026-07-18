@@ -249,7 +249,6 @@ async def stream_process_request(request: str, require_review: bool = False, for
         raise HTTPException(status_code=503, detail="LLM API key is not configured.")
 
     import asyncio
-    import json
     queue = asyncio.Queue()
     loop = asyncio.get_running_loop()
 
@@ -351,7 +350,6 @@ async def stream_execute_plan(body: PlanEditRequest):
         raise HTTPException(status_code=503, detail="LLM API key is not configured.")
 
     import asyncio
-    import json
     from app.config import DEBUG_TIMING
     from app.metrics import _current_stage
     
