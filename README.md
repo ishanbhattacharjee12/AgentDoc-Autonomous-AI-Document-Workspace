@@ -19,6 +19,42 @@ AgentDoc is an **autonomous document intelligence platform** that transforms nat
 
 ---
 
+## 💡 Demo Prompts
+
+These sample prompts are designed to showcase the platform's capabilities during live demonstrations. Copy and paste them into the workspace to see AgentDoc in action.
+
+<details>
+<summary><strong>Standard Mode (Fast & Direct)</strong></summary>
+<br>
+<em>Use this mode for straightforward documents that don't require complex multi-step reasoning. It generates the document in a single pass.</em>
+
+```text
+Create a professional business proposal for implementing an AI-powered customer support chatbot for a mid-sized e-commerce company with approximately 200 employees. Include an executive summary, current challenges, proposed solution, implementation roadmap, estimated budget, expected business benefits, risks, KPIs, project timeline, and final recommendations. Present the document in a consultant-style format with headings, tables, and bullet points.
+```
+</details>
+
+<details>
+<summary><strong>Adaptive Mode (Context-Aware)</strong></summary>
+<br>
+<em>Use this mode when you want the system to automatically determine the necessary depth of analysis and whether to use a multi-step plan based on the prompt's complexity.</em>
+
+```text
+Create a strategic business expansion plan for a rapidly growing fintech startup planning to enter three new international markets. Include market analysis, expansion strategy, operational roadmap, regulatory considerations, hiring plan, estimated budget, risks, financial projections, success metrics, and executive recommendations. Adjust the depth of analysis based on the complexity of the problem.
+```
+</details>
+
+<details>
+<summary><strong>Advanced Mode (Deep Reasoning Pipeline)</strong></summary>
+<br>
+<em>Use this mode for comprehensive, highly structured reports. It engages the full multi-agent pipeline (Planner → Executor → Synthesizer → Reflector) for maximum quality and depth.</em>
+
+```text
+Create a comprehensive AI adoption strategy for a mid-sized retail company with 500 employees planning to integrate AI across customer support, inventory forecasting, marketing, sales, HR, and internal operations over the next 12 months. Include an executive summary, current-state assessment, stakeholder analysis, AI use cases, technology stack recommendations, implementation roadmap, cost-benefit analysis, ROI projections, governance framework, cybersecurity considerations, staffing plan, KPIs, budget breakdown, risk assessment with mitigation strategies, change management plan, and final executive recommendations. Present the report in a professional consultant-style format with numbered headings, tables, bullet points, and executive-ready language.
+```
+</details>
+
+---
+
 ## 🚀 Key Features
 
 *   **Autonomous Planning & Reasonings**: Decomposes complex user requests into structured, multi-phase execution tasks using an LLM-powered planner agent.
