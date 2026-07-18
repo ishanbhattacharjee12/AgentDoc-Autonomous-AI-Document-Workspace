@@ -1,6 +1,6 @@
 import type { GenerationRequestParams, PlanReviewData, SSEEvent } from '../types/api'
 
-const API_BASE = '' // Relative path — dev proxy handles localhost, production serves from root
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') // Support Vercel -> Render cross-origin deployment
 
 export class ApiError extends Error {
   status?: number
